@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Letter Stack — Home</title>
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/landing.css" />
+</head>
+<body class="landing">
+  <div class="wrap">
+    <header class="hero" aria-label="Letter Stack — Home">
+      <h1 class="title">Letter Stack</h1>
+      <p class="tagline">Clear the board, one word at a time to win.</p>
+      <div class="actions">
+        <a class="start button primary" href="game.html?showSettings=1" title="Start Game">Start Game</a>
+        <a class="button secondary" href="guide.html" title="User Guide">User Guide</a>
+      </div>
+    </header>
+
+    <!-- About the game (concise and centered) -->
+    <section class="howto about" aria-label="About Letter Stack">
+      <h2>About the Game</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="ico">1</div>
+          <div><strong>What it is:</strong> a fast, grid‑based word puzzle. Pick any letters, submit valid words, and clear the board before stacks overflow.</div>
+        </div>
+        <div class="step">
+          <div class="ico">2</div>
+          <div><strong>How it plays:</strong> pick any tiles (no adjacency). Minimum word length is 3. Submitting clears the top letter from each selected stack. New letters spawn on a timer; a dashed outline warns the next spawn.</div>
+        </div>
+        <div class="step">
+          <div class="ico">3</div>
+          <div><strong>Difficulty & tempo:</strong> Easy 10s ×1 • Medium 7s ×1 • Hard 5s ×2 • Insane 4s ×3 (short words may bump to 4). Word length affects tempo: 3 → speeds up, 4 → normal, 5+ → slows down.</div>
+        </div>
+        <div class="step">
+          <div class="ico">4</div>
+          <div><strong>Settings:</strong> Grid size 4–10 (default 6). Optional lose threshold (Off / 5 / 7 / 9). Words are validated online via dictionaryapi.dev.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

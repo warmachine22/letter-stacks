@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Word Stacks — Game</title>
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/game.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header id="hdr" class="hdrGrid">
+      <div class="hdrLeft">
+        <div class="pill"><strong>Next Spawn:</strong> <span id="spawnTimer">5.0s</span></div>
+      </div>
+      <div class="hdrCenter">
+        <div class="pill wordPill"><strong>Word:</strong> <span id="currentWordHeader" class="autoShrink">—</span></div>
+      </div>
+      <div class="hdrRight">
+        <button id="menuBtn" class="button" title="Menu">☰</button>
+      </div>
+    </header>
+
+    <div class="middle">
+      <div class="boardWrap">
+        <main class="grid" id="grid" aria-label="Letter Board"></main>
+      </div>
+
+      <div class="underBar">
+        <div id="submitSplit" class="submitSplit">
+          <button id="clearBtn" class="danger splitBtn" title="Clear selection">Clear</button>
+          <button id="submitBtn" class="primary splitBtn" title="Submit word">Submit</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Letter Stack — User Guide</title>
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/landing.css" />
+</head>
+<body class="landing">
+  <div class="wrap">
+    <header class="hero" aria-label="Letter Stack — User Guide">
+      <div class="actions" style="justify-content:flex-start">
+        <a class="button secondary" href="index.html" title="Back to Home">← Back to Home</a>
+      </div>
+      <h1 class="title">User Guide</h1>
+      <p class="tagline">Everything you need to know to play and win.</p>
+    </header>
+
+    <!-- Goal & Basics -->
+    <section class="howto" aria-label="Goal & Basics">
+      <h2>Goal & Basics</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="ico">1</div>
+          <div><strong>Objective:</strong> Clear the entire board by submitting valid words until no tiles remain.</div>
+        </div>
+        <div class="step">
+          <div class="ico">2</div>
+          <div><strong>Select letters:</strong> Pick any tiles (no adjacency rule). Minimum word length is <strong>3</strong>.</div>
+        </div>
+        <div class="step">
+          <div class="ico">3</div>
+          <div><strong>Submit:</strong> Removes the <em>top</em> letter from each selected stack. Used letters are returned to the bag to keep the letter distribution stable.</div>
+        </div>
+        <div class="step">
+          <div class="ico">4</div>
+          <div><strong>Lose condition (optional):</strong> If any stack reaches the chosen threshold (Off / 5 / 7 / 9), the run ends.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Spawning & Warnings -->
+    <section class="howto" aria-label="Spawning & Warnings">
+      <h2>Spawning & Warnings</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="ico">1</div>
+          <div>New letters spawn on a timer based on difficulty. The next-spawn countdown is shown at the top.</div>
+        </div>
+        <div class="step">
+          <div class="ico">2</div>
+          <div>Tiles that will receive the next spawn are highlighted with a dashed <em>warning outline</em> shortly before the spawn.</div>
+        </div>
+        <div class="step">
+          <div class="ico">3</div>
+          <div><strong>Word length affects tempo:</strong> shorter words speed future spawns; longer words slow them (details below).</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Difficulty & Settings -->
+    <section class="howto" aria-label="Difficulty & Settings">
+      <h2>Difficulty & Settings</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="ico">A</div>
+          <div>
+            <strong>Difficulty (spawn rate × quantity):</strong>
+            <ul>
+              <li><strong>Easy:</strong> 1 letter every 10s</li>
+              <li><strong>Medium:</strong> 1 letter every 7s</li>
+              <li><strong>Hard:</strong> 2 letters every 5s</li>
+              <li><strong>Insane:</strong> 3 letters every 4s (3‑letter words may increase next spawn to 4)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="step">
+          <div class="ico">B</div>
+          <div>
+            <strong>Tempo (based on submitted word length):</strong>
+            <ul>
+              <li><strong>3 letters:</strong> speeds up (shorter interval)</li>
+              <li><strong>4 letters:</strong> neutral (base interval)</li>
+              <li><strong>5+ letters:</strong> slows down (longer interval)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="step">
+          <div class="ico">C</div>
+          <div>
+            <strong>Grid Size (4–10):</strong> larger grids allow longer sessions; the letter bag scales to maintain variety.
+          </div>
+        </div>
+        <div class="step">
+          <div class="ico">D</div>
+          <div>
+            <strong>Lose at Stack:</strong> Off / 5 / 7 / 9. If any stack reaches the threshold, the run ends.
+          </div>
+        </div>
+        <div class="step">
+          <div class="ico">E</div>
+          <div>
+            <strong>Dictionary Validation:</strong> Words are checked online via <a href="https://dictionaryapi.dev/" target="_blank" rel="noopener">dictionaryapi.dev</a>. An internet connection is required for validation.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls -->
+    <section class="howto" aria-label="Controls">
+      <h2>Controls</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="ico">1</div>
+          <div>Click / tap tiles to toggle selection.</div>
+        </div>
+        <div class="step">
+          <div class="ico">2</div>
+          <div><strong>Enter:</strong> Submit word &nbsp;•&nbsp; <strong>Escape:</strong> Clear selection.</div>
+        </div>
+        <div class="step">
+          <div class="ico">3</div>
+          <div><strong>☰ Menu:</strong> Settings / Reset / Home.</div>
+        </div>
+        <div class="step">
+          <div class="ico">4</div>
+          <div>From the home page, “Start Game” opens the Settings modal first so you can configure rules.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tips -->
+    <section class="howto" aria-label="Tips">
+      <h2>Tips</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="ico">✓</div>
+          <div>Use longer words when the board is crowded to slow spawns and regain control.</div>
+        </div>
+        <div class="step">
+          <div class="ico">✓</div>
+          <div>Watch pre‑blink tiles to anticipate which stacks will grow next.</div>
+        </div>
+        <div class="step">
+          <div class="ico">✓</div>
+          <div>Experiment with grid size and threshold to tailor session length and difficulty.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="actions" style="margin-top:16px; justify-content:center">
+      <a class="button primary" href="index.html" title="Back to Home">Back to Home</a>
+      <a class="button" href="game.html?showSettings=1" title="Start Game">Start Game</a>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
