@@ -25,13 +25,16 @@ Notes:
 
 ## Levels and tempo
 
-Choose a Level (1–20). Each level sets a base cadence and spawn quantity:
+Choose a Level (1–26). Each level sets a base cadence and spawn quantity:
 
 - Levels 1–6: 1 tile every 10→5s (higher levels are faster)
 - Levels 7–12: 2 tiles every 10→5s
 - Levels 13–18: 3 tiles every 10→5s
 - Level 19: 3 tiles every 4s
 - Level 20: 4 tiles every 10s
+- Levels 21–24: 4 tiles every 8→5s
+- Level 25: 5 tiles every 6s
+- Level 26 (Extreme): 6 tiles every 6s (fixed tempo)
 
 After each valid submission, the tempo adapts based on word length (simplified rules):
 
@@ -41,6 +44,10 @@ After each valid submission, the tempo adapts based on word length (simplified r
 
 Idle acceleration:
 - If 12 seconds pass without playing a word, drops run at about 50% of the base timing (rounded down to whole seconds) until you play a word.
+
+Extreme level (26):
+- Fixed tempo: always 6 tiles every 6s (ignores adaptive tempo and idle acceleration).
+- Targeting mechanic: of the 6 targets each cycle, 2 go to the tallest stack(s) on the board (random among ties); the remaining 4 are random anywhere.
 
 ## Letter selection and balance
 
@@ -65,7 +72,7 @@ Data is stored in `localStorage` under `ws.scores`.
 ## Settings
 
 - Board: fixed 5×6 (5 across, 6 down)
-- Level: 1–20
+- Level: 1–26 (Extreme optional)
 - Lose at Stack: 5–10
 - Countdown also appears inside the Drop (▼) button
 

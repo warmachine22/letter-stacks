@@ -59,7 +59,7 @@
         </div>
         <div class="step">
           <div class="ico">4</div>
-          <div><strong>Targeting:</strong> Spawns fill <em>empty tiles first</em> (random among empties). If more spawns remain, the rest are placed randomly anywhere.</div>
+          <div><strong>Targeting:</strong> Default: spawns fill <em>empty tiles first</em> (random among empties), then randomly anywhere. <strong>Extreme Level (26):</strong> of the 6 targets each cycle, 2 go to the tallest stack(s) (random among ties); the remaining 4 are random anywhere.</div>
         </div>
         <div class="step">
           <div class="ico">5</div>
@@ -75,13 +75,16 @@
         <div class="step">
           <div class="ico">A</div>
           <div>
-            <strong>Level (1–20):</strong> sets base cadence and spawn quantity:
+            <strong>Level (1–26):</strong> sets base cadence and spawn quantity:
             <ul>
               <li><strong>Levels 1–6:</strong> 1 tile every 10→5s (higher level = faster)</li>
               <li><strong>Levels 7–12:</strong> 2 tiles every 10→5s</li>
               <li><strong>Levels 13–18:</strong> 3 tiles every 10→5s</li>
               <li><strong>Level 19:</strong> 3 tiles every 4s</li>
               <li><strong>Level 20:</strong> 4 tiles every 10s</li>
+              <li><strong>Levels 21–24:</strong> 4 tiles every 8→5s</li>
+              <li><strong>Level 25:</strong> 5 tiles every 6s</li>
+              <li><strong>Level 26 (Extreme):</strong> 6 tiles every 6s (fixed tempo)</li>
             </ul>
           </div>
         </div>
@@ -94,7 +97,7 @@
               <li><strong>4 letters:</strong> no change (stays at the level’s base timing)</li>
               <li><strong>5+ letters:</strong> next drop is slower by 3 seconds from your level’s base timing (then returns to normal)</li>
             </ul>
-            <div class="note">If 12 seconds pass without playing a word, drops run at about 50% of the base timing (rounded down) until you play a word.</div>
+            <div class="note">If 12 seconds pass without playing a word, drops run at about 50% of the base timing (rounded down) until you play a word. Extreme Level (26) ignores adaptive tempo and idle acceleration — it always runs 6 tiles every 6s.</div>
           </div>
         </div>
       </div>

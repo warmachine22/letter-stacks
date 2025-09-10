@@ -38,8 +38,8 @@ function loadSettings(){
       else if (d === "insane") lvl = 19;       // 3×4s
       else lvl = 1;
     }
-    // Clamp within 1–25
-    if (lvl < 1) lvl = 1; if (lvl > 25) lvl = 25;
+    // Clamp within 1–26
+    if (lvl < 1) lvl = 1; if (lvl > 26) lvl = 26;
 
     return {
       level: lvl,
@@ -177,6 +177,7 @@ function presetForLevel(level){
   else if (level === 20) { qty = 4; secs = 10; }
   else if (level >= 21 && level <= 24) { qty = 4; secs = 29 - level; }      // 21:8, 22:7, 23:6, 24:5
   else if (level === 25) { qty = 5; secs = 6; }
+  else if (level === 26) { qty = 6; secs = 6; }
   // Guardrails
   secs = Math.max(1, Math.min(60, secs));
   return { baseInterval: secs * 1000, spawnQty: qty };
@@ -351,14 +352,6 @@ function chooseNextSpawns(){
   const qty = spawnQtyCurrent;
   const total = GRID_ROWS * GRID_COLS;
 
-  // Collect empty tiles (length === 0) and all indices
-  const empties = [];
-  const all = [];
-  for (let i=0;i<total;i++){
-    all.push(i);
-    if (gridStacks[i].length === 0) empties.push(i);
-  }
-
   // Fisher–Yates shuffle helper
   const shuffle = (arr) => {
     for (let i = arr.length - 1; i > 0; i--){
@@ -367,6 +360,61 @@ function chooseNextSpawns(){
     }
     return arr;
   };
+
+  // Extreme Level 26:
+  // - 2 targets from tallest stacks (if tie, pick any two randomly; if fewer than 2 at max height, pull from next tallest)
+  // - Remaining (qty - 2) fully random across all tiles (no empty-tile priority)
+  if ((settings.level || 1) === 26){
+    const heights = Array.from({length: total}, (_, i) => ({ i, h: gridStacks[i].length }));
+    const maxH = heights.reduce((m, x) => Math.max(m, x.h), 0);
+    const tallest = heights.filter(x => x.h === maxH).map(x => x.i);
+
+    const picks = [];
+    shuffle(tallest);
+    while (picks.length < Math.min(2, qty) && tallest.length){
+      picks.push(tallest.pop());
+    }
+
+    // If fewer than 2 tallest were picked, fill from next tallest groups
+    let needTall = Math.min(2, qty) - picks.length;
+    if (needTall > 0){
+      const remaining = heights.filter(x => !picks.includes(x.i));
+      // Sort remaining by height desc
+      remaining.sort((a,b) => b.h - a.h);
+      let k = 0;
+      while (needTall > 0 && k < remaining.length){
+        const hVal = remaining[k].h;
+        const group = remaining
+          .filter(x => x.h === hVal && !picks.includes(x.i))
+          .map(x => x.i);
+        shuffle(group);
+        while (needTall > 0 && group.length){
+          picks.push(group.pop());
+          needTall--;
+        }
+        while (k < remaining.length && remaining[k].h === hVal) k++;
+      }
+    }
+
+    // Remaining targets: random from all tiles (no empty priority)
+    const allIdx = Array.from({length: total}, (_, i) => i).filter(i => !picks.includes(i));
+    shuffle(allIdx);
+    while (picks.length < qty && allIdx.length){
+      picks.push(allIdx.pop());
+    }
+
+    nextTargets = picks.map(idx => ({ idx }));
+    return;
+  }
+
+  // Default behavior for other levels:
+  // Collect empty tiles (length === 0) and all indices
+  const empties = [];
+  const all = [];
+  for (let i=0;i<total;i++){
+    all.push(i);
+    if (gridStacks[i].length === 0) empties.push(i);
+  }
 
   const picks = [];
   shuffle(empties);
@@ -446,6 +494,10 @@ function manualDrop(){
 }
 
 function applyTempoFromWordLen(len){
+  // Extreme Level 26: ignore tempo rules (fixed interval/qty)
+  if ((settings.level || 1) === 26){
+    return { interval: null, qty: spawnQtyCurrent };
+  }
   // Simplified next-cycle rules relative to baseInterval:
   // 3 letters => base - 3s (min 1s), 4 letters => no change, 5+ letters => base + 3s
   let interval = null;
@@ -561,7 +613,13 @@ function loop(now){
     if (ended) return;
 
     // Apply simplified next-cycle tempo (from last submission), else idle acceleration if 12s without a submission
-    if (nextIntervalPending != null && nextQtyPending != null){
+    if ((settings.level || 1) === 26){
+      // Extreme Level: fixed tempo and quantity
+      spawnInterval = baseInterval;
+      spawnQtyCurrent = spawnQty;
+      nextIntervalPending = null;
+      nextQtyPending = null;
+    } else if (nextIntervalPending != null && nextQtyPending != null){
       spawnInterval = nextIntervalPending;
       spawnQtyCurrent = nextQtyPending;
       nextIntervalPending = null;
@@ -630,7 +688,10 @@ async function trySubmit(){
   // Tempo changes take effect next cycle (do not reset current countdown/targets)
   {
     const { interval } = applyTempoFromWordLen(len);
-    if (len === 3){
+    if ((settings.level || 1) === 26){
+      // Extreme Level: no tempo changes apply
+      showToast("Extreme: tempo fixed");
+    } else if (len === 3){
       const secs = Math.max(1, Math.floor((baseInterval - 3000) / 1000));
       showToast(`Next cycle: every ${secs}s (faster)`);
     } else if (len === 4){
