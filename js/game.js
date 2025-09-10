@@ -1,5 +1,5 @@
 /**
- * Word Stacks — Streamlined MVP
+ * Letter Stacks — Streamlined MVP
  * - Settings via modal (gear button)
  * - No scoring, no run-left timer
  * - Header shows Next Spawn only; Home/Reset live in header
