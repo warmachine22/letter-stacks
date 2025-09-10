@@ -138,84 +138,57 @@ export function showSettingsModal({ initial, onSave }){
     return wrap;
   };
 
-  // Difficulty
-  const diff = document.createElement("select");
-  diff.className = "select";
-  ["Easy","Medium","Hard","Insane"].forEach(v=>{
-    const o = document.createElement("option"); o.value=v; o.textContent=v;
-    if (initial?.difficulty === v) o.selected = true;
-    diff.appendChild(o);
-  });
-
-  // Grid size
-  const grid = document.createElement("select");
-  grid.className = "select";
-  for (let n=4;n<=10;n++){
-    const o = document.createElement("option"); o.value=String(n); o.textContent=String(n);
-    if (initial?.gridSize === n) o.selected = true;
-    grid.appendChild(o);
+  // Level-based difficulty (wider dropdown, no label)
+  const levelSel = document.createElement("select");
+  levelSel.className = "select";
+  levelSel.style.width = "100%";
+  const makeOpt = (value, text, selected) => {
+    const o = document.createElement("option");
+    o.value = String(value);
+    o.textContent = text;
+    if (selected) o.selected = true;
+    return o;
+  };
+  // Levels:
+  // 1–6:  1 tile every 10..5s
+  // 7–12: 2 tiles every 10..5s
+  // 13–18: 3 tiles every 10..5s
+  // 19:    3 tiles every 4s
+  // 20:    4 tiles every 10s
+  const selLevel = parseInt(initial?.level, 10) || 1;
+  for (let lvl = 1; lvl <= 20; lvl++){
+    let qty = 1, secs = 10;
+    if (lvl >= 1 && lvl <= 6) { qty = 1; secs = 11 - lvl; }
+    else if (lvl >= 7 && lvl <= 12) { qty = 2; secs = 10 - (lvl - 7); }
+    else if (lvl >= 13 && lvl <= 18) { qty = 3; secs = 10 - (lvl - 13); }
+    else if (lvl === 19) { qty = 3; secs = 4; }
+    else if (lvl === 20) { qty = 4; secs = 10; }
+    const label = `Level ${lvl} (${qty} ${qty === 1 ? "tile" : "tiles"} every ${secs} sec)`;
+    levelSel.appendChild(makeOpt(lvl, label, lvl === selLevel));
   }
 
-  // Threshold
+
+  // Threshold (5 through 10)
   const thr = document.createElement("select");
   thr.className = "select";
-  // Off, then 5 through 10
-  [["off","Off"],["5","5"],["6","6"],["7","7"],["8","8"],["9","9"],["10","10"]].forEach(([v,l])=>{
-    const o = document.createElement("option"); o.value=v; o.textContent=l;
-    if (String(initial?.threshold ?? "off") === v) o.selected = true;
+  for (let n=5;n<=10;n++){
+    const v = String(n);
+    const o = document.createElement("option"); o.value=v; o.textContent=v;
+    if (String(initial?.threshold ?? "7") === v) o.selected = true;
     thr.appendChild(o);
-  });
+  }
 
-  // Difficulty row with inline help toggle
-  const diffWrap = document.createElement("div");
-  diffWrap.style.display = "flex";
-  diffWrap.style.gap = "8px";
-  diffWrap.style.alignItems = "center";
+  // Place the level select without a label (wider)
+  const levelWrap = document.createElement("div");
+  levelWrap.style.margin = "12px 0";
+  levelWrap.appendChild(levelSel);
+  body.appendChild(levelWrap);
 
-  const infoBtn = document.createElement("button");
-  infoBtn.type = "button";
-  infoBtn.className = "textBtn";
-  infoBtn.setAttribute("aria-expanded", "false");
-  infoBtn.title = "How difficulty affects spawns and tempo";
-  infoBtn.textContent = "ⓘ";
-  diffWrap.appendChild(diff);
-  diffWrap.appendChild(infoBtn);
-
-  const diffRow = row("Difficulty", diffWrap);
-  body.appendChild(diffRow);
-
-  const diffHelp = document.createElement("div");
-  diffHelp.className = "modal-help hidden";
-  diffHelp.innerHTML = `
-    <strong>Difficulty:</strong> controls spawn rate and quantity.<br/>
-    Easy: 1 letter every 10s • Medium: 1 every 7s • Hard: 2 every 5s • Insane: 3 every 4s<br/>
-    <strong>Tempo:</strong> 3-letter words speed up; 4-letter neutral; 5+ slow down future spawns.
-  `;
-  body.appendChild(diffHelp);
-
-  infoBtn.addEventListener("click", (e)=>{
-    e.stopPropagation();
-    const isHidden = diffHelp.classList.toggle("hidden");
-    infoBtn.setAttribute("aria-expanded", String(!isHidden));
-  });
-
-  // Grid size
-  body.appendChild(row("Grid Size", grid));
 
   // Threshold (lose condition)
   body.appendChild(row("Lose at stack", thr));
 
-  // Stack display style
-  const styleSel = document.createElement("select");
-  styleSel.className = "select";
-  [
-    ["default","Default"],
-    ["fill","Fill method"]
-  ].forEach(([v,l])=>{
-    const o = document.createElement("option"); o.value=v; o.textContent=l; styleSel.appendChild(o);
-  });
-  if (initial?.stackStyle === "fill") styleSel.value = "fill";
-  body.appendChild(row("Stack Display", styleSel));
+
 
   card.appendChild(body);
 
@@ -231,10 +204,8 @@ export function showSettingsModal({ initial, onSave }){
   save.textContent = "Save & Apply";
   save.addEventListener("click", ()=>{
     const settings = {
-      difficulty: diff.value,
-      gridSize: parseInt(grid.value, 10),
-      threshold: thr.value,
-      stackStyle: (document.querySelector(".form-row select.select:last-of-type") ? styleSel.value : "default")
+      level: parseInt(levelSel.value, 10) || 1,
+      threshold: thr.value
     };
     overlay.remove();
     if (typeof onSave === "function") onSave(settings);
@@ -260,7 +231,7 @@ export function showSettingsModal({ initial, onSave }){
  * onReset?: () => void
  * onSettings?: () => void
  */
-export function showMenuModal({ onHome, onReset, onSettings } = {}){
+export function showMenuModal({ onHome, onReset, onSettings, onScoreboard } = {}){
   // Clean any existing
   document.querySelectorAll(".modal-overlay").forEach(n => n.remove());
 
@@ -293,6 +264,7 @@ export function showMenuModal({ onHome, onReset, onSettings } = {}){
   };
 
   body.appendChild(btn("Settings", "primary", onSettings));
+  body.appendChild(btn("Scoreboard", "", onScoreboard));
   body.appendChild(btn("Reset Run", "", onReset));
   body.appendChild(btn("Home", "", onHome));
 
@@ -314,4 +286,133 @@ export function showMenuModal({ onHome, onReset, onSettings } = {}){
   document.body.appendChild(overlay);
 
   setTimeout(()=> body.querySelector("button")?.focus(), 0);
+}
+
+/**
+ * Scoreboard modal
+ * - Lists local scores with optional level filter
+ * - Provides share options via Web Share API (if available) or mailto/WhatsApp/SMS fallback
+ */
+export function showScoreboardModal({ getScores } = {}){
+  // Clean any existing
+  document.querySelectorAll(".modal-overlay").forEach(n => n.remove());
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+
+  const card = document.createElement("div");
+  card.className = "modal-card";
+
+  const h2 = document.createElement("h2");
+  h2.textContent = "Scoreboard";
+  card.appendChild(h2);
+
+  const body = document.createElement("div");
+  body.className = "modal-body";
+
+  // Filter row
+  const filterWrap = document.createElement("div");
+  filterWrap.className = "form-row";
+  const filterLabel = document.createElement("label");
+  filterLabel.textContent = "Filter by level";
+  filterLabel.style.fontWeight = "600";
+  const sel = document.createElement("select");
+  sel.className = "select";
+  const optAll = document.createElement("option"); optAll.value = ""; optAll.textContent = "All Levels";
+  sel.appendChild(optAll);
+  for (let i=1;i<=20;i++){
+    const o = document.createElement("option");
+    o.value = String(i);
+    o.textContent = `Level ${i}`;
+    sel.appendChild(o);
+  }
+  filterWrap.appendChild(filterLabel);
+  filterWrap.appendChild(sel);
+  body.appendChild(filterWrap);
+
+  // List container
+  const list = document.createElement("div");
+  list.style.display = "grid";
+  list.style.gap = "8px";
+  body.appendChild(list);
+
+  const scores = (typeof getScores === "function" ? getScores() : []);
+  const render = () => {
+    const filter = sel.value.trim();
+    list.innerHTML = "";
+    const filtered = scores
+      .filter(s => !filter || String(s.level) === filter)
+      .sort((a,b)=> (b.at||0) - (a.at||0));
+    if (filtered.length === 0){
+      const empty = document.createElement("div");
+      empty.textContent = "No scores yet.";
+      empty.style.opacity = ".8";
+      list.appendChild(empty);
+      return;
+    }
+    filtered.forEach(s=>{
+      const row = document.createElement("div");
+      row.style.display = "grid";
+      row.style.gridTemplateColumns = "1fr auto";
+      row.style.alignItems = "center";
+      row.style.gap = "8px";
+      row.style.border = "1px solid #222733";
+      row.style.background = "var(--panel)";
+      row.style.borderRadius = "10px";
+      row.style.padding = "8px 10px";
+
+      const left = document.createElement("div");
+      const mins = Math.floor(Math.max(0, Math.round((s.elapsedMs||0)/1000)) / 60);
+      const secs = Math.floor(Math.max(0, Math.round((s.elapsedMs||0)/1000)) % 60);
+      const timeTxt = `${mins}:${String(secs).padStart(2,'0')}`;
+      const when = s.at ? new Date(s.at).toLocaleString() : "";
+      left.textContent = `Level ${s.level} — ${timeTxt}  ${when ? `• ${when}` : ""}`;
+
+      const share = document.createElement("button");
+      share.textContent = "Share";
+      share.className = "button";
+      share.style.minHeight = "36px";
+      share.addEventListener("click", async ()=>{
+        const shareText = `I completed Letter Stacks Level ${s.level} in ${timeTxt}!`;
+        try{
+          if (navigator.share){
+            await navigator.share({ title: "Letter Stacks", text: shareText, url: location.href });
+          } else if (navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(`${shareText} ${location.href}`);
+            showToast("Copied share text to clipboard");
+          } else {
+            // Fallback: open mailto
+            const mail = `mailto:?subject=Letter%20Stacks&body=${encodeURIComponent(shareText)}%0A${encodeURIComponent(location.href)}`;
+            window.location.href = mail;
+          }
+        }catch(e){
+          // Silent fail or show toast
+          showToast("Share canceled");
+        }
+      });
+
+      row.appendChild(left);
+      row.appendChild(share);
+      list.appendChild(row);
+    });
+  };
+
+  sel.addEventListener("change", render);
+  render();
+
+  card.appendChild(body);
+
+  const actions = document.createElement("div");
+  actions.className = "modal-actions";
+  const close = document.createElement("button");
+  close.textContent = "Close";
+  close.addEventListener("click", ()=> overlay.remove());
+  actions.appendChild(close);
+  card.appendChild(actions);
+
+  overlay.addEventListener("click", (e)=>{ if (e.target === overlay) overlay.remove(); });
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
 }

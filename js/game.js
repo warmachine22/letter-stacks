@@ -8,9 +8,9 @@
 
 import { checkWord } from "./api.js";
 import { buildBag, drawLetter, returnLettersBack } from "./bag.js";
-import { DIFFICULTY_PRESETS, tempoForWordLen } from "./tempo.js";
+import { tempoForWordLen } from "./tempo.js";
 import { renderGrid, paintBlink, layoutBoard } from "./grid.js";
-import { showToast, showEndModal, showSettingsModal, showMenuModal } from "./ui.js";
+import { showToast, showEndModal, showSettingsModal, showMenuModal, showScoreboardModal } from "./ui.js";
 
 /* ============================
  * Settings (persisted)
@@ -20,41 +20,97 @@ const SETTINGS_KEY = "ws.settings";
 function loadSettings(){
   try{
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return { difficulty:"Medium", gridSize:6, threshold:"off", stackStyle:"default" };
+    // Defaults: Level 1 and threshold 7
+    if (!raw) return { level: 1, threshold: "7" };
     const obj = JSON.parse(raw);
+
+    // Threshold: coerce to 5–10
+    let thr = String(obj.threshold ?? "7");
+    const tn = parseInt(thr, 10);
+    if (!Number.isFinite(tn) || tn < 5 || tn > 10) thr = "7";
+
+    // Level: prefer obj.level, else migrate from legacy difficulty, else default to 1
+    let lvl = parseInt(obj.level, 10);
+    if (!Number.isFinite(lvl)) {
+      const d = String(obj.difficulty ?? "").toLowerCase();
+      if (d === "easy") lvl = 1;               // 1×10s
+      else if (d === "medium") lvl = 4;        // 1×7s
+      else if (d === "hard") lvl = 12;         // 2×5s
+      else if (d === "insane") lvl = 19;       // 3×4s
+      else lvl = 1;
+    }
+    // Clamp within 1–20
+    if (lvl < 1) lvl = 1; if (lvl > 20) lvl = 20;
+
     return {
-      difficulty: obj.difficulty ?? "Medium",
-      gridSize: Number(obj.gridSize ?? 6),
-      threshold: String(obj.threshold ?? "off"),
-      stackStyle: String(obj.stackStyle ?? "default")
+      level: lvl,
+      threshold: thr
     };
   }catch{
-    return { difficulty:"Medium", gridSize:6, threshold:"off", stackStyle:"default" };
+    return { level: 1, threshold:"7" };
   }
 }
 function saveSettings(s){
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
 }
 
+// Scores (local) — minimal helpers
+const SCORES_KEY = "ws.scores";
+function getScores(){
+  try{
+    const raw = localStorage.getItem(SCORES_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  }catch{
+    return [];
+  }
+}
+function addScore(score){
+  const arr = getScores();
+  arr.push(score);
+  localStorage.setItem(SCORES_KEY, JSON.stringify(arr));
+}
+
 /* ============================
  * State
  * ============================
  */
-let settings = loadSettings();           // { difficulty, gridSize, threshold }
-let GRID_SIZE = settings.gridSize;
-let difficulty = settings.difficulty;
-let stackStyle = settings.stackStyle ?? "default";
+let settings = loadSettings();           // { level, threshold }
+const GRID_COLS = 5;
+const GRID_ROWS = 6;
 
-let LOSE_ON_STACK_CEILING = settings.threshold !== "off";
-let STACK_CEILING = settings.threshold === "off" ? 7 : parseInt(settings.threshold, 10);
+let STACK_CEILING = parseInt(settings.threshold, 10) || 7;
 
 let bag = [];
 let gridStacks = [];                     // array<array<string>>
 let selected = new Set();                // Set<number>
 
-let spawnInterval = DIFFICULTY_PRESETS[difficulty].baseInterval;
+/**
+ * Map level (1–20) to base interval (ms) and spawn quantity.
+ * Levels:
+ *  1–6:  1 tile every 10..5s
+ *  7–12: 2 tiles every 10..5s
+ * 13–18: 3 tiles every 10..5s
+ * 19:    3 tiles every 4s
+ * 20:    4 tiles every 10s
+ */
+function presetForLevel(level){
+  let qty = 1, secs = 10;
+  if (level >= 1 && level <= 6) { qty = 1; secs = 11 - level; }             // 10..5
+  else if (level >= 7 && level <= 12) { qty = 2; secs = 10 - (level - 7); } // 10..5
+  else if (level >= 13 && level <= 18) { qty = 3; secs = 10 - (level - 13);} // 10..5
+  else if (level === 19) { qty = 3; secs = 4; }
+  else if (level === 20) { qty = 4; secs = 10; }
+  // Guardrails
+  secs = Math.max(1, Math.min(60, secs));
+  return { baseInterval: secs * 1000, spawnQty: qty };
+}
+
+let { baseInterval, spawnQty } = presetForLevel(settings.level || 1);
+let spawnInterval = baseInterval;
 let spawnCountdown = spawnInterval;
-let spawnQtyCurrent = DIFFICULTY_PRESETS[difficulty].spawnQty;
+let spawnQtyCurrent = spawnQty;
 
 let nextTargets = [];                    // [{ idx:number, letter:string }]
 let blinkArmed = false;
@@ -62,6 +118,7 @@ let blinkArmed = false;
 let lastTick = performance.now();
 let rafId = null;
 let gameOver = false;
+let runStartMs = 0;
 
 /* ============================
  * Elements
@@ -69,13 +126,15 @@ let gameOver = false;
  */
 const el = {
   grid: document.getElementById("grid"),
-  spawnTimer: document.getElementById("spawnTimer"),
+  dropTimer: document.getElementById("dropTimer"),
   submitBtn: document.getElementById("submitBtn"),
   clearBtn: document.getElementById("clearBtn"),
   dropBtn: document.getElementById("dropBtn"),
   menuBtn: document.getElementById("menuBtn"),
   currentWordHeader: document.getElementById("currentWordHeader"),
   submitSplit: document.getElementById("submitSplit"),
+  brandHeader: document.getElementById("brandHeader"),
+  levelBadge: document.getElementById("levelBadge"),
 };
 
 /* ============================
@@ -94,23 +153,73 @@ function computeWord(){
 }
 function updateWordBar(){
   const { word } = computeWord();
-  if (el.currentWordHeader){
-    el.currentWordHeader.textContent = word || "—";
+  const hasWord = !!word;
+
+  if (el.brandHeader){
+    el.brandHeader.classList.toggle("hidden", hasWord);
   }
-  fitWordHeader();
+  if (el.currentWordHeader){
+    el.currentWordHeader.classList.toggle("hidden", !hasWord);
+    el.currentWordHeader.textContent = hasWord ? word : "";
+  }
+  if (hasWord){
+    fitWordHeader();
+  }
 }
 function updateTimersUI(){
-  el.spawnTimer.textContent = (spawnCountdown/1000).toFixed(1) + "s";
+  if (el.dropTimer){
+    el.dropTimer.textContent = (spawnCountdown/1000).toFixed(1) + "s";
+  }
+  // Update spawn clock progress for all targeted tiles
+  if (el.grid){
+    const prog = Math.max(0, Math.min(1, 1 - (spawnCountdown / (spawnInterval || 1))));
+    const deg = Math.round(prog * 360);
+    el.grid.style.setProperty("--spawn-deg", `${deg}deg`);
+  }
 }
 function fitWordHeader(){
   const node = el.currentWordHeader;
   if (!node) return;
-  node.style.fontSize = "";
+
   const parent = node.parentElement || node;
-  let size = 18;
-  const min = 12;
+
+  // Determine base font size from an actual tile letter so it matches tiles
+  let base = 0;
+  const sample = el.grid ? el.grid.querySelector(".tile .letter") : null;
+  if (sample){
+    const cs = getComputedStyle(sample);
+    base = parseFloat(cs.fontSize) || 0;
+  }
+  if (!base){
+    // Fallback: derive from computed tile size if available
+    const ts = getComputedStyle(document.documentElement).getPropertyValue("--tile-size-px");
+    const tpx = parseFloat(ts) || 0;
+    base = tpx ? Math.max(12, Math.round(tpx * 0.6)) : 28;
+  }
+
+  // Start with tile-sized font and generous spacing
+  let size = Math.max(12, Math.round(base));
   node.style.whiteSpace = "nowrap";
-  while (size > min && node.scrollWidth > parent.clientWidth - 24){
+  node.style.fontSize = size + "px";
+
+  // Dynamic letter-spacing: start wider, reduce before shrinking font
+  const paddingAllowance = 12; // pixels to account for pill inner padding
+  let spacing = 0.10;          // em
+  const minSpacing = 0.00;     // em
+  const stepSpacing = 0.01;    // em
+
+  node.style.letterSpacing = spacing.toFixed(2) + "em";
+
+  const fits = () => node.scrollWidth <= (parent.clientWidth - paddingAllowance);
+
+  // First, try reducing spacing until it fits or we hit min spacing
+  while (!fits() && spacing > minSpacing){
+    spacing = Math.max(minSpacing, parseFloat((spacing - stepSpacing).toFixed(2)));
+    node.style.letterSpacing = spacing.toFixed(2) + "em";
+  }
+
+  // If still doesn't fit, shrink font size (keep the spacing we settled on)
+  while (!fits() && size > 12){
     size -= 1;
     node.style.fontSize = size + "px";
   }
@@ -126,10 +235,10 @@ function layout(){
 }
 function repaint(withBlink = true){
   renderGrid(el.grid, gridStacks, selected, {
-    gridSize: GRID_SIZE,
-    threshold: LOSE_ON_STACK_CEILING ? STACK_CEILING : undefined,
-    stackStyle,
-    blinkTargets: withBlink && blinkArmed && nextTargets.length ? nextTargets.map(t=>t.idx) : [],
+    gridSize: GRID_COLS,
+    threshold: STACK_CEILING,
+    // Always pass current targets so spawn clocks render regardless of withBlink
+    blinkTargets: nextTargets.length ? nextTargets.map(t=>t.idx) : [],
     onTileClick: (i)=>{
       if (gameOver) return;
       const L = topLetterAt(i);
@@ -150,15 +259,16 @@ function repaint(withBlink = true){
  * ============================
  */
 function initGrid(){
-  gridStacks = Array.from({length: GRID_SIZE*GRID_SIZE}, ()=> []);
-  for (let i=0; i<GRID_SIZE*GRID_SIZE; i++){
-    gridStacks[i].push(drawLetter(bag, GRID_SIZE));
+  const total = GRID_ROWS * GRID_COLS;
+  gridStacks = Array.from({length: total}, ()=> []);
+  for (let i=0; i<total; i++){
+    gridStacks[i].push(drawLetter(bag, GRID_ROWS, GRID_COLS));
   }
 }
 function chooseNextSpawns(){
   nextTargets = [];
   const qty = spawnQtyCurrent;
-  const total = GRID_SIZE * GRID_SIZE;
+  const total = GRID_ROWS * GRID_COLS;
 
   // Collect empty tiles (length === 0) and all indices
   const empties = [];
@@ -193,13 +303,13 @@ function chooseNextSpawns(){
     }
   }
 
-  nextTargets = picks.map(idx => ({ idx, letter: drawLetter(bag, GRID_SIZE) }));
+  nextTargets = picks.map(idx => ({ idx, letter: drawLetter(bag, GRID_ROWS, GRID_COLS) }));
 }
 function performSpawnTick(){
   if (!nextTargets.length) chooseNextSpawns();
   for (const t of nextTargets){
     gridStacks[t.idx].push(t.letter);
-    if (LOSE_ON_STACK_CEILING && gridStacks[t.idx].length >= STACK_CEILING){
+    if (gridStacks[t.idx].length >= STACK_CEILING){
       endGame({ type:"lose", reason:`Stack hit ×${STACK_CEILING}` });
       return true; // ended
     }
@@ -228,7 +338,7 @@ function manualDrop(){
 
   gridStacks[t.idx].push(t.letter);
 
-  if (LOSE_ON_STACK_CEILING && gridStacks[t.idx].length >= STACK_CEILING){
+  if (gridStacks[t.idx].length >= STACK_CEILING){
     endGame({ type:"lose", reason:`Stack hit ×${STACK_CEILING}` });
     return;
   }
@@ -239,12 +349,21 @@ function manualDrop(){
   // Keep highlighting any remaining scheduled targets
   blinkArmed = nextTargets.length > 0;
 
+  // If none remain, choose new targets immediately so the user still sees where the next spawn will go
+  if (nextTargets.length === 0){
+    chooseNextSpawns();
+    blinkArmed = nextTargets.length > 0;
+  }
+
   repaint(false);
   updateTimersUI();
 }
 
 function applyTempoFromWordLen(len){
-  const { interval, qty } = tempoForWordLen(len, difficulty);
+  // Preserve prior behavior: when "Insane", 3-letter words may increase qty by +1 (max 4).
+  // We approximate by treating any base where spawnQtyCurrent >= 3 as "Insane".
+  const presetName = (spawnQtyCurrent >= 3) ? "Insane" : "Medium";
+  const { interval, qty } = tempoForWordLen(len, presetName);
   spawnInterval = interval;
   spawnQtyCurrent = qty;
   spawnCountdown = spawnInterval;
@@ -265,6 +384,17 @@ function endGame({ type="lose", reason="Run over." } = {}){
   el.clearBtn.disabled = true;
   blinkArmed = false;
   paintBlink(el.grid, []);
+
+  // On win, compute elapsed and persist score, and show richer message
+  if (type === "win"){
+    const elapsedMs = Math.max(0, Math.round((performance.now() - runStartMs)));
+    addScore({ level: settings.level || 1, elapsedMs, at: Date.now() });
+    const mins = Math.floor(elapsedMs/1000/60);
+    const secs = Math.floor((elapsedMs/1000) % 60);
+    const timeTxt = `${mins}:${String(secs).padStart(2,'0')}`;
+    reason = `Completed Level ${settings.level || 1} in ${timeTxt}. Added to your Scoreboard.`;
+  }
+
   showEndModal({
     result: type === "win" ? "win" : "lose",
     reason,
@@ -274,20 +404,31 @@ function endGame({ type="lose", reason="Run over." } = {}){
 function resetGame(){
   if (rafId) cancelAnimationFrame(rafId);
   gameOver = false;
+  runStartMs = performance.now();
 
-  bag = buildBag(GRID_SIZE);
+  bag = buildBag(GRID_ROWS, GRID_COLS);
   initGrid();
   selected.clear(); updateWordBar(); repaint(false);
 
-  const preset = DIFFICULTY_PRESETS[difficulty];
-  spawnInterval = preset.baseInterval;
-  spawnQtyCurrent = preset.spawnQty;
+  const p = presetForLevel(settings.level || 1);
+  spawnInterval = p.baseInterval;
+  spawnQtyCurrent = p.spawnQty;
   spawnCountdown = spawnInterval;
 
+  // Update the level badge text (top of the board)
+  if (el.levelBadge){
+    const secs = Math.round(p.baseInterval / 1000);
+    const qtyTxt = p.spawnQty === 1 ? "tile" : "tiles";
+    el.levelBadge.textContent = `Level ${settings.level} — ${p.spawnQty} ${qtyTxt} every ${secs} sec`;
+  }
+
   chooseNextSpawns();
+  // Re-render to show spawn clocks for new targets
+  repaint(false);
   lastTick = performance.now();
   el.submitBtn.disabled = false; el.clearBtn.disabled = false;
   layout();
+  updateTimersUI(); // initialize spawn clock hand
   loop();
 }
 function loop(now){
@@ -316,6 +457,8 @@ function loop(now){
     if (ended) return;
     spawnCountdown = spawnInterval;
     chooseNextSpawns();
+    // Re-render to display clocks on newly chosen targets
+    repaint(false);
   }
   updateTimersUI();
 }
@@ -374,25 +517,18 @@ async function trySubmit(){
 function openSettings(){
   showSettingsModal({
     initial: {
-      difficulty,
-      gridSize: GRID_SIZE,
-      threshold: LOSE_ON_STACK_CEILING ? String(STACK_CEILING) : "off"
+      level: settings.level || 1,
+      threshold: String(STACK_CEILING)
     },
     onSave: (s)=>{
       settings = {
-        difficulty: s.difficulty,
-        gridSize: s.gridSize,
-        threshold: s.threshold,
-        stackStyle: s.stackStyle || "default"
+        level: parseInt(s.level, 10) || 1,
+        threshold: s.threshold
       };
       saveSettings(settings);
 
       // Apply
-      difficulty = settings.difficulty;
-      GRID_SIZE = settings.gridSize;
-      LOSE_ON_STACK_CEILING = settings.threshold !== "off";
-      STACK_CEILING = settings.threshold === "off" ? 7 : parseInt(settings.threshold, 10);
-      stackStyle = settings.stackStyle || "default";
+      STACK_CEILING = parseInt(settings.threshold, 10) || 7;
 
       resetGame();
       showToast("Settings applied");
@@ -414,7 +550,8 @@ if (el.menuBtn){
     showMenuModal({
       onHome: ()=> { window.location.href = "index.html"; },
       onReset: ()=> resetGame(),
-      onSettings: ()=> openSettings()
+      onSettings: ()=> openSettings(),
+      onScoreboard: ()=> showScoreboardModal({ getScores })
     });
   });
 }

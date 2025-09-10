@@ -10,11 +10,12 @@
 <body>
   <div class="wrap">
     <header id="hdr" class="hdrGrid">
-      <div class="hdrLeft">
-        <div class="pill"><strong>Next Spawn:</strong> <span id="spawnTimer">5.0s</span></div>
-      </div>
+      <div class="hdrLeft"></div>
       <div class="hdrCenter">
-        <div class="pill wordPill"><strong>Word:</strong> <span id="currentWordHeader" class="autoShrink">—</span></div>
+        <div class="pill wordPill">
+          <span id="brandHeader" class="brandHeader">Letter Stacks</span>
+          <span id="currentWordHeader" class="wordText autoShrink hidden"></span>
+        </div>
       </div>
       <div class="hdrRight">
         <button id="menuBtn" class="button" title="Menu">☰</button>
@@ -24,12 +25,13 @@
     <div class="middle">
       <div class="boardWrap">
         <main class="grid" id="grid" aria-label="Letter Board"></main>
+        <div id="levelBadge" class="pill levelPill" aria-live="polite"></div>
       </div>
 
       <div class="underBar">
         <div id="submitSplit" class="submitSplit">
           <button id="clearBtn" class="danger splitBtn" title="Clear selection">Clear</button>
-          <button id="dropBtn" class="splitBtn" title="Drop new tile">▼</button>
+          <button id="dropBtn" class="splitBtn" title="Drop new tile"><span id="dropTimer">5.0s</span> <span aria-hidden="true">▼</span></button>
           <button id="submitBtn" class="primary splitBtn" title="Submit word">Submit</button>
         </div>
       </div>

@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Letter Stack — User Guide</title>
+  <title>Letter Stacks — User Guide</title>
   <link rel="stylesheet" href="styles/base.css" />
   <link rel="stylesheet" href="styles/landing.css" />
 </head>
 <body class="landing">
   <div class="wrap">
-    <header class="hero" aria-label="Letter Stack — User Guide">
+    <header class="hero" aria-label="Letter Stacks — User Guide">
       <div class="actions" style="justify-content:flex-start">
         <a class="button secondary" href="index.html" title="Back to Home">← Back to Home</a>
       </div>
       <h1 class="title">User Guide</h1>
-      <p class="tagline">Everything you need to know to play and win.</p>
+      <p class="tagline">How to play, levels, and tips.</p>
       <div class="pill" role="status"><strong>Beta:</strong> This is a beta build. Testing and feedback are appreciated.</div>
     </header>
 
@@ -32,109 +32,103 @@
         </div>
         <div class="step">
           <div class="ico">3</div>
-          <div><strong>Submit:</strong> Removes the <em>top</em> letter from each selected stack. Used letters are returned to the bag to keep the letter distribution stable.</div>
+          <div><strong>Submit:</strong> Removes the <em>top</em> letter from each selected stack and returns those letters to the bag.</div>
         </div>
         <div class="step">
           <div class="ico">4</div>
-          <div><strong>Lose condition (optional):</strong> If any stack reaches the chosen threshold (Off / 5 / 7 / 9), the run ends.</div>
+          <div><strong>Optional lose:</strong> If any stack reaches the chosen threshold (5–10), the run ends.</div>
         </div>
       </div>
     </section>
 
-    <!-- Spawning & Warnings -->
-    <section class="howto" aria-label="Spawning & Warnings">
-      <h2>Spawning & Warnings</h2>
+    <!-- Spawning & Drop -->
+    <section class="howto" aria-label="Spawning & Drop">
+      <h2>Spawning & Drop</h2>
       <div class="steps">
         <div class="step">
           <div class="ico">1</div>
-          <div>New letters spawn on a timer based on difficulty. The next-spawn countdown is shown at the top.</div>
+          <div>New letters spawn on a timer. The next‑spawn countdown also appears inside the <strong>Drop (▼)</strong> button.</div>
         </div>
         <div class="step">
           <div class="ico">2</div>
-          <div>Tiles that will receive the next spawn are highlighted with a dashed <em>warning outline</em> shortly before the spawn.</div>
+          <div>Tiles that will receive the next spawn display an on‑tile <strong>circular countdown clock</strong> (a rotating hand with a trailing wedge).</div>
         </div>
         <div class="step">
           <div class="ico">3</div>
-          <div><strong>Stack danger highlighting (when “Lose at Stack” is enabled):</strong> tiles turn <strong>orange</strong> at <em>50% of the threshold</em> (e.g., 4+ when threshold is 7), and <strong>red</strong> when they are <em>two away from losing</em> (e.g., 5+ when threshold is 7).</div>
+          <div><strong>Drop (▼):</strong> Instantly spawn exactly one letter and reset the timer. Repeat to drop more, one per click.</div>
         </div>
         <div class="step">
           <div class="ico">4</div>
-          <div><strong>Spawn targeting prioritizes blanks:</strong> new letters fill <em>empty tiles first</em> (chosen randomly among empties). If there are more spawns than empties, the remainder are placed randomly anywhere.</div>
+          <div><strong>Targeting:</strong> Spawns fill <em>empty tiles first</em> (random among empties). If more spawns remain, the rest are placed randomly anywhere.</div>
         </div>
         <div class="step">
           <div class="ico">5</div>
-          <div><strong>Word length affects tempo:</strong> shorter words speed future spawns; longer words slow them (details below).</div>
+          <div><strong>Fill indicator:</strong> each tile shows a bottom‑up green <strong>fill bar</strong> proportional to its stack relative to the threshold.</div>
         </div>
       </div>
     </section>
 
-    <!-- Difficulty & Settings -->
-    <section class="howto" aria-label="Difficulty & Settings">
-      <h2>Difficulty & Settings</h2>
+    <!-- Levels & Tempo -->
+    <section class="howto" aria-label="Levels & Tempo">
+      <h2>Levels & Tempo</h2>
       <div class="steps">
         <div class="step">
           <div class="ico">A</div>
           <div>
-            <strong>Difficulty (spawn rate × quantity):</strong>
+            <strong>Level (1–20):</strong> sets base cadence and spawn quantity:
             <ul>
-              <li><strong>Easy:</strong> 1 letter every 10s</li>
-              <li><strong>Medium:</strong> 1 letter every 7s</li>
-              <li><strong>Hard:</strong> 2 letters every 5s</li>
-              <li><strong>Insane:</strong> 3 letters every 4s (3‑letter words may increase next spawn to 4)</li>
+              <li><strong>Levels 1–6:</strong> 1 tile every 10→5s (higher level = faster)</li>
+              <li><strong>Levels 7–12:</strong> 2 tiles every 10→5s</li>
+              <li><strong>Levels 13–18:</strong> 3 tiles every 10→5s</li>
+              <li><strong>Level 19:</strong> 3 tiles every 4s</li>
+              <li><strong>Level 20:</strong> 4 tiles every 10s</li>
             </ul>
           </div>
         </div>
         <div class="step">
           <div class="ico">B</div>
           <div>
-            <strong>Tempo (based on submitted word length):</strong>
+            <strong>Tempo adapts to word length:</strong>
             <ul>
-              <li><strong>3 letters:</strong> speeds up (shorter interval)</li>
+              <li><strong>3 letters:</strong> speeds up (shorter interval, floor 3s)</li>
               <li><strong>4 letters:</strong> neutral (base interval)</li>
-              <li><strong>5+ letters:</strong> slows down (longer interval)</li>
+              <li><strong>5+ letters:</strong> slows down (longer interval, cap 12s)</li>
             </ul>
-          </div>
-        </div>
-        <div class="step">
-          <div class="ico">C</div>
-          <div>
-            <strong>Grid Size (4–10):</strong> larger grids allow longer sessions; the letter bag scales to maintain variety.
-          </div>
-        </div>
-        <div class="step">
-          <div class="ico">D</div>
-          <div>
-            <strong>Lose at Stack:</strong> Off / 5 / 7 / 9. If any stack reaches the threshold, the run ends.
-          </div>
-        </div>
-        <div class="step">
-          <div class="ico">E</div>
-          <div>
-            <strong>Dictionary Validation:</strong> Words are checked online via <a href="https://dictionaryapi.dev/" target="_blank" rel="noopener">dictionaryapi.dev</a>. An internet connection is required for validation.
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Controls -->
-    <section class="howto" aria-label="Controls">
-      <h2>Controls</h2>
+    <!-- Scoreboard -->
+    <section class="howto" aria-label="Scoreboard">
+      <h2>Scoreboard</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="ico">✓</div>
+          <div>Your completion time is saved locally per level (no backend). Open <strong>☰ Menu → Scoreboard</strong> to view, filter by level, and share.</div>
+        </div>
+        <div class="step">
+          <div class="ico">✓</div>
+          <div>Sharing uses your device’s share sheet when available; otherwise it falls back to clipboard copy and mailto links.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings & Controls -->
+    <section class="howto" aria-label="Settings & Controls">
+      <h2>Settings & Controls</h2>
       <div class="steps">
         <div class="step">
           <div class="ico">1</div>
-          <div>Click / tap tiles to toggle selection.</div>
+          <div><strong>Board:</strong> fixed <strong>5×6</strong>. <strong>Lose at Stack:</strong> choose 5–10. Countdown also appears inside the Drop (▼) button.</div>
         </div>
         <div class="step">
           <div class="ico">2</div>
-          <div><strong>Enter:</strong> Submit word &nbsp;•&nbsp; <strong>Escape:</strong> Clear selection.</div>
+          <div><strong>Controls:</strong> Tap tiles to toggle selection. <strong>Enter</strong> submit • <strong>Escape</strong> clear • <strong>▼ Drop</strong> spawn one • <strong>☰ Menu</strong> Settings / Scoreboard / Reset / Home.</div>
         </div>
         <div class="step">
           <div class="ico">3</div>
-          <div><strong>☰ Menu:</strong> Settings / Reset / Home.</div>
-        </div>
-        <div class="step">
-          <div class="ico">4</div>
-          <div>From the home page, “Start Game” opens the Settings modal first so you can configure rules.</div>
+          <div><strong>Dictionary:</strong> words are validated via <a href="https://dictionaryapi.dev/" target="_blank" rel="noopener">dictionaryapi.dev</a>.</div>
         </div>
       </div>
     </section>
@@ -149,11 +143,11 @@
         </div>
         <div class="step">
           <div class="ico">✓</div>
-          <div>Watch pre‑blink tiles to anticipate which stacks will grow next.</div>
+          <div>Watch tiles with the circular countdown to anticipate which stacks will grow next.</div>
         </div>
         <div class="step">
           <div class="ico">✓</div>
-          <div>Experiment with grid size and threshold to tailor session length and difficulty.</div>
+          <div>Use <strong>Drop (▼)</strong> tactically to adjust the cadence on your terms.</div>
         </div>
       </div>
     </section>

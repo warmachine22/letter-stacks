@@ -1,7 +1,12 @@
 /* Game page specific styles */
 
+:root{
+  /* Default to the largest preferred letter size */
+  --tile-font-scale: 1.3;
+}
+
 .middle{ display:flex; flex-direction:column; gap:8px; min-height:0; flex:1; }
-.boardWrap{ flex:1; display:flex; align-items:center; justify-content:center; min-height:0; }
+.boardWrap{ flex:1; display:flex; align-items:center; justify-content:center; min-height:0; position:relative; }
 
 .grid{
   display:grid; gap:var(--gap);
@@ -15,35 +20,18 @@
   position:relative; aspect-ratio:1/1; border-radius:12px; border:1px solid #242a39;
   background:var(--tile);
   display:flex; align-items:center; justify-content:center; user-select:none;
-  font-weight:800; font-size:clamp(16px, 4.2vw, 28px); letter-spacing:.02em;
+  font-weight:800; font-size:calc(var(--tile-font-scale, 1) * clamp(19px, 5vw, 34px)); letter-spacing:.02em;
   transition: transform .05s ease, background .15s ease, box-shadow .15s ease;
   touch-action:manipulation;
   overflow:hidden; /* contain fill bar within rounded corners */
 }
 .tile:hover{ background:var(--tile-hover) }
 .tile.selected{
-  outline:2px solid var(--accent); outline-offset:-2px;
-  box-shadow: 0 0 0 4px rgba(110,231,183,.12);
+  /* Neon selection ring matching header text color (var(--blink)) */
+  box-shadow:
+    0 0 0 6px rgba(245, 158, 11, 0.85),
+    0 0 18px rgba(245, 158, 11, 0.60);
   transform: translateY(-1px);
-}
-/* Danger levels based on stack height */
-.tile.warn{
-  background: #2b2015;
-  border-color: #51371b;
-  box-shadow: inset 0 0 0 1px rgba(255,165,0,.08);
-}
-.tile.danger{
-  background: #311718;
-  border-color: #5a2326;
-  box-shadow: inset 0 0 0 1px rgba(239,68,68,.12);
-}
-.badge{
-  position:absolute; right:6px; top:6px;
-  color:#fff; font-weight:800;
-  font-size: clamp(10px, 2.8vw, 12px);
-  line-height:1;
-  text-shadow: 0 1px 2px rgba(0,0,0,.6);
-  pointer-events:none;
 }
 
 /* Fill method visuals */
@@ -51,12 +39,11 @@
   position:absolute;
   left:0; right:0; bottom:0;
   height:0%;
-  background: rgba(16, 185, 129, .28); /* green tint (default 0-50%) */
+  /* Static light green tint (slightly more transparent) */
+  background: rgba(16, 185, 129, .20);
   transition: height .18s ease;
   pointer-events:none;
 }
-.fillBar.orange{ background: rgba(245, 158, 11, .28) } /* >50%-70% */
-.fillBar.red{ background: rgba(239, 68, 68, .3) }     /* >70% */
 
 .tile .letter{
   position:relative; z-index:1; /* above fill bar */
@@ -67,6 +54,32 @@
   border:2px dashed var(--blink); animation: blink 0.6s linear infinite;
 }
 @keyframes blink{ 0%{opacity:.15} 50%{opacity:1} 100%{opacity:.15} }
+
+/* Spawn clock overlay for next-target tiles */
+.spawnClock{
+  position:absolute;
+  inset:0;
+  border-radius:12px;
+  pointer-events:none;
+  /* trailing wedge from 0deg to var(--spawn-deg) in a faint yellow/orange */
+  background: conic-gradient(
+    color-mix(in srgb, var(--blink) 45%, transparent) 0 var(--spawn-deg, 0deg),
+    transparent var(--spawn-deg, 0deg) 360deg
+  );
+  opacity:.35; /* overall softness */
+}
+.spawnClock::after{
+  content:"";
+  position:absolute;
+  left:50%; top:50%;
+  width:2px; height:42%;
+  background: var(--blink);
+  border-radius:2px;
+  transform-origin: bottom center;
+  transform: translate(-50%, -100%) rotate(var(--spawn-deg, 0deg));
+  /* subtle glow for the hand */
+  box-shadow: 0 0 6px rgba(245, 158, 11, .6);
+}
 
 /* Under-grid action bar */
 .underBar{
@@ -105,11 +118,46 @@
 /* Header word pill auto-shrink support */
 .wordPill .autoShrink{
   display:inline-block;
-  max-width:28vw;
+  max-width:70vw;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
   vertical-align:middle;
+}
+
+/* Header word text styling */
+.wordText{
+  color: var(--blink);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .02em;
+}
+
+/* Brand header (shows "Letter Stacks" when no letters are selected) */
+.brandHeader{
+  display:inline-block;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: .02em;
+  background: var(--grad-1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Bump size ~15–20% while staying responsive */
+  font-size: clamp(18px, 5.8vw, 34px);
+  vertical-align: middle;
+}
+
+/* Level badge at the top edge of the board */
+.levelPill{
+  position:absolute;
+  top:6px;
+  left:50%;
+  transform: translateX(-50%);
+  pointer-events:none;
+  opacity:.9;
+  font-size: clamp(12px, 3vw, 14px);
+  padding:6px 10px;
 }
 
 /* Header 3-area grid: left controls, centered word, right actions */
@@ -122,3 +170,13 @@
 .hdrLeft{ justify-self:start }
 .hdrCenter{ justify-self:center }
 .hdrRight{ justify-self:end }
+
+/* Game page viewport control */
+body{
+  overflow:hidden;
+  overscroll-behavior:none;
+  height:100svh; /* ensure layout fits viewport and prevents page scroll */
+}
+.wrap{
+  padding-bottom: calc(var(--wrap-pad) + env(safe-area-inset-bottom, 0px) + 10px);
+}

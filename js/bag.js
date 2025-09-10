@@ -2,9 +2,9 @@
  * Bag + scoring helpers (Scrabble-style distribution)
  * Exports:
  * - LETTER_COUNTS, LETTER_VALUES
- * - bagMultiplierForGrid(size)
- * - buildBag(size) -> string[] (shuffled)
- * - drawLetter(bag, size) -> string (refills bag if empty)
+ * - bagMultiplierForGrid(rows, cols)
+ * - buildBag(rows, cols) -> string[] (shuffled)
+ * - drawLetter(bag, rows, cols) -> string (refills bag if empty)
  * - returnLettersBack(bag, letters: string[])
  */
 
@@ -19,15 +19,15 @@ function shuffle(a){
   return a;
 }
 
-export function bagMultiplierForGrid(size){
+export function bagMultiplierForGrid(rows, cols){
   // Scale total letter supply ~linearly with grid area; base 36 tiles ~1x
   const baseArea = 36;
-  const area = size*size;
-  return Math.max(1, Math.ceil((area / baseArea) * 2)); // 2 bags for 6x6; more for larger
+  const area = Math.max(1, (rows|0) * (cols|0));
+  return Math.max(1, Math.ceil((area / baseArea) * 2)); // 2 bags around 6x6; scales with area
 }
 
-export function buildBag(size=6){
-  const multi = bagMultiplierForGrid(size);
+export function buildBag(rows=6, cols=5){
+  const multi = bagMultiplierForGrid(rows, cols);
   const arr = [];
   for (let k=0;k<multi;k++){
     for (const [L,count] of Object.entries(LETTER_COUNTS)){
@@ -37,9 +37,9 @@ export function buildBag(size=6){
   return shuffle(arr);
 }
 
-export function drawLetter(bag, size){
+export function drawLetter(bag, rows, cols){
   if (!bag.length){
-    const refill = buildBag(size);
+    const refill = buildBag(rows, cols);
     bag.push(...refill);
   }
   return bag.pop();

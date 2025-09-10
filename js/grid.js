@@ -11,11 +11,12 @@ function topLetter(stack){
 }
 
 export function renderGrid(gridEl, gridStacks, selectedSet, opts = {}){
-  const { gridSize, blinkTargets = [], onTileClick, threshold, stackStyle } = opts;
+  const { gridSize, blinkTargets = [], onTileClick, threshold } = opts;
   if (!gridEl) return;
 
   if (gridSize) {
     gridEl.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+    gridEl.dataset.cols = String(gridSize);
   }
 
   gridEl.innerHTML = "";
@@ -34,35 +35,21 @@ export function renderGrid(gridEl, gridStacks, selectedSet, opts = {}){
 
     const stackLen = gridStacks[i]?.length || 0;
 
-    const useFill = (stackStyle === "fill") && (typeof threshold === "number" && Number.isFinite(threshold) && threshold > 0);
+    const useFill = (typeof threshold === "number" && Number.isFinite(threshold) && threshold > 0);
 
     if (useFill) {
       const pct = Math.max(0, Math.min(stackLen / threshold, 1));
       const bar = document.createElement("div");
       bar.className = "fillBar";
       bar.style.height = `${Math.round(pct * 100)}%`;
-      if (pct > 0.7) bar.classList.add("red");
-      else if (pct > 0.5) bar.classList.add("orange");
-      // else default green
       tile.appendChild(bar);
-    } else {
-      // Default warn/danger visuals and badge
-      if (typeof threshold === "number" && Number.isFinite(threshold) && threshold > 0){
-        const warnAt = Math.ceil(threshold * 0.5);
-        const dangerAt = Math.max(1, threshold - 2);
-        if (stackLen >= dangerAt) {
-          tile.classList.add("danger");
-        } else if (stackLen >= warnAt) {
-          tile.classList.add("warn");
-        }
-      }
+    }
 
-      if (stackLen > 1){
-        const b = document.createElement("div");
-        b.className = "badge";
-        b.textContent = `${stackLen}`;
-        tile.appendChild(b);
-      }
+    // Spawn clock overlay if this tile is a scheduled target
+    if (blinkTargets && Array.isArray(blinkTargets) && blinkTargets.includes(i)){
+      const clock = document.createElement("div");
+      clock.className = "spawnClock";
+      tile.appendChild(clock);
     }
 
     const letterEl = document.createElement("span");
@@ -84,13 +71,10 @@ export function renderGrid(gridEl, gridStacks, selectedSet, opts = {}){
 }
 
 export function paintBlink(gridEl, indices){
+  // Legacy dashed-outline disabled; we keep this to clear any existing classes
   if (!gridEl) return;
   gridEl.querySelectorAll(".tile.blink").forEach(n => n.classList.remove("blink"));
-  if (!indices || !indices.length) return;
-  for (const idx of indices){
-    const node = gridEl.querySelector(`.tile[data-idx="${idx}"]`);
-    if (node) node.classList.add("blink");
-  }
+  // No further action; spawn indicators are rendered as .spawnClock overlays
 }
 
 /**
@@ -104,14 +88,46 @@ export function layoutBoard(gridEl){
   const under = document.querySelector(".underBar");
   const middle = document.querySelector(".middle");
 
+  // Available outer space (viewport minus chrome)
   const headerH = header ? header.getBoundingClientRect().height : 0;
   const footerH = footer ? footer.getBoundingClientRect().height : 0;
   const underH  = under ? (under.getBoundingClientRect().height + 8) : 0;
+  const availHOuter = window.innerHeight - headerH - footerH - underH - 24;
+  const availWOuter = middle ? middle.getBoundingClientRect().width : (gridEl.parentElement?.getBoundingClientRect().width || window.innerWidth);
 
-  const availH = window.innerHeight - headerH - footerH - underH - 24;
-  const availW = middle ? middle.getBoundingClientRect().width : gridEl.parentElement?.getBoundingClientRect().width || window.innerWidth;
+  // Determine current columns and rows
+  const cols = Math.max(1, parseInt(gridEl.dataset.cols || "5", 10));
+  const tileCount = gridEl.querySelectorAll(".tile").length || cols * cols;
+  const rows = Math.max(1, Math.ceil(tileCount / cols));
 
-  const boardSize = Math.max(160, Math.min(availH, availW));
-  gridEl.style.width  = `${boardSize}px`;
-  gridEl.style.height = `${boardSize}px`;
+  // Account for container paddings, borders, and CSS grid gap
+  const cs = getComputedStyle(gridEl);
+  const gap = parseFloat(cs.gap) || 0;
+  const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+  const borderX = (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
+  const borderY = (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+  const chromeX = padX + borderX;
+  const chromeY = padY + borderY;
+
+  // Available inner space for tiles (content box)
+  const availW = Math.max(0, availWOuter - chromeX);
+  const availH = Math.max(0, availHOuter - chromeY);
+
+  // Compute tile size that fits rows×cols including gaps
+  const totalGapW = gap * Math.max(0, cols - 1);
+  const totalGapH = gap * Math.max(0, rows - 1);
+  const maxTileW = (availW - totalGapW) / cols;
+  const maxTileH = (availH - totalGapH) / rows;
+  const tileSize = Math.max(16, Math.floor(Math.min(maxTileW, maxTileH)));
+
+  // Final grid size
+  const width  = tileSize * cols + totalGapW + chromeX;
+  const height = tileSize * rows + totalGapH + chromeY;
+
+  // Expose current tile size for settings previews
+  document.documentElement.style.setProperty("--tile-size-px", `${tileSize}px`);
+
+  gridEl.style.width  = `${Math.max(160, Math.min(width,  availWOuter))}px`;
+  gridEl.style.height = `${Math.max(160, Math.min(height, availHOuter))}px`;
 }

@@ -136,6 +136,9 @@ footer{
   padding:18px;
   box-shadow: 0 14px 40px rgba(0,0,0,.45);
   font-size: clamp(16px, 3.8vw, 18px);
+  max-height: calc(100svh - 32px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .modal-card h2{
   margin:0 0 8px 0; font-size:clamp(20px, 5vw, 24px);

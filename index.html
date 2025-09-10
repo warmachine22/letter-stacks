@@ -3,40 +3,40 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Letter Stack — Home</title>
+  <title>Letter Stacks — Home</title>
   <link rel="stylesheet" href="styles/base.css" />
   <link rel="stylesheet" href="styles/landing.css" />
 </head>
 <body class="landing">
   <div class="wrap">
-    <header class="hero" aria-label="Letter Stack — Home">
-      <h1 class="title">Letter Stack</h1>
-      <p class="tagline">Clear the board, one word at a time to win.</p>
+    <header class="hero" aria-label="Letter Stacks — Home">
+      <h1 class="title">Letter Stacks</h1>
+      <p class="tagline">Clear the board, one word at a time.</p>
       <div class="actions">
         <a class="start button primary" href="game.html?showSettings=1" title="Start Game">Start Game</a>
         <a class="button secondary" href="guide.html" title="User Guide">User Guide</a>
       </div>
     </header>
 
-    <!-- About the game (concise and centered) -->
-    <section class="howto about" aria-label="About Letter Stack">
+    <!-- Simple, focused overview -->
+    <section class="howto about" aria-label="About Letter Stacks">
       <h2>About the Game</h2>
       <div class="steps">
         <div class="step">
           <div class="ico">1</div>
-          <div><strong>What it is:</strong> a fast, grid‑based word puzzle. Pick any letters, submit valid words, and clear the board before stacks overflow.</div>
+          <div><strong>What it is:</strong> a fast, mobile‑friendly word puzzle. Make words from any tiles (no adjacency). Clear every tile to win.</div>
         </div>
         <div class="step">
           <div class="ico">2</div>
-          <div><strong>How it plays:</strong> pick any tiles (no adjacency). Minimum word length is 3. Submitting clears the top letter from each selected stack. New letters spawn on a timer; a dashed outline warns the next spawn.</div>
+          <div><strong>How it plays:</strong> select letters (min 3). Submitting removes the top letter from each selected stack. Tiles that will spawn next show an on‑tile circular countdown. Press <strong>Drop (▼)</strong> to spawn one letter instantly and reset the timer.</div>
         </div>
         <div class="step">
           <div class="ico">3</div>
-          <div><strong>Difficulty & tempo:</strong> Easy 10s ×1 • Medium 7s ×1 • Hard 5s ×2 • Insane 4s ×3 (short words may bump to 4). Word length affects tempo: 3 → speeds up, 4 → normal, 5+ → slows down.</div>
+          <div><strong>Levels & tempo:</strong> choose <strong>Level 1–20</strong>. Higher levels drop more/faster (1→2→3 tiles; L19: 3 @ 4s; L20: 4). Word length adapts tempo: 3 → faster, 4 → base, 5+ → slower.</div>
         </div>
         <div class="step">
           <div class="ico">4</div>
-          <div><strong>Settings:</strong> Grid size 4–10 (default 6). Optional lose threshold (Off / 5 / 7 / 9). Words are validated online via dictionaryapi.dev.</div>
+          <div><strong>Settings & scores:</strong> fixed board <strong>5×6</strong>. Optional lose at stack <strong>5–10</strong>. Local <strong>Scoreboard</strong> (☰ Menu) saves your level times and supports sharing.</div>
         </div>
       </div>
     </section>
