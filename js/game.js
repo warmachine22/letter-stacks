@@ -111,6 +111,14 @@ function countVisibleTop(){
   return { total, vowels };
 }
 
+function updateVowelMeter(){
+  const meter = document.getElementById("vowelMeter");
+  if (!meter) return;
+  const { total, vowels } = countVisibleTop();
+  const pct = total ? Math.round((vowels / total) * 100) : 0;
+  meter.textContent = `V: ${pct}%`;
+}
+
 /**
  * Draw a letter right at spawn time with a gentle bias based on visible composition.
  * - Prefers consonant if visible vowels are high; prefers vowel if consonants are high.
@@ -320,6 +328,7 @@ function repaint(withBlink = true){
   if (withBlink) {
     paintBlink(el.grid, blinkArmed ? nextTargets.map(t=>t.idx) : []);
   }
+  updateVowelMeter();
 }
 
 /* ============================
