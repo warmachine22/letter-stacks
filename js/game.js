@@ -6,7 +6,7 @@
  * - Start from landing opens with settings modal (?showSettings=1)
  */
 
-import { checkWord } from "./api.js";
+import { checkWord, ensureDictionary } from "./api.js";
 import { buildBag, drawLetter, returnLettersBack } from "./bag.js";
 import { tempoForWordLen } from "./tempo.js";
 import { renderGrid, paintBlink, layoutBoard } from "./grid.js";
@@ -591,7 +591,13 @@ window.addEventListener("orientationchange", ()=> setTimeout(layout, 120));
  * Boot
  * ============================
  */
-function boot(){
+async function boot(){
+  try {
+    await ensureDictionary();
+  } catch {
+    showToast("Dictionary unavailable. Connect once to download the word list.");
+  }
+
   // Start a run with persisted/default settings
   resetGame();
 

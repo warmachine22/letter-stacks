@@ -13,7 +13,7 @@ function normalizeWord(w) {
   return (w || "").toLowerCase().trim();
 }
 
-async function ensureDictionary() {
+export async function ensureDictionary() {
   if (dictSet) return dictSet;
   if (loadPromise) return loadPromise;
 

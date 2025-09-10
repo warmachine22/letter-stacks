@@ -2,6 +2,7 @@
 
 Status
 - Branding: standardized to “Letter Stacks” across user-visible UI (page title, headers). Keep this as the canonical name in all future copy/design.
+- Dictionary: Local offline dictionary with strict validation (no fallback). The Service Worker pre-caches data/words.json for offline play.
 
 Overview
 This document outlines product decisions and enhancements in plain language. For each item you&#39;ll find:

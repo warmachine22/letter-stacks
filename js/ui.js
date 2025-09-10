@@ -62,7 +62,7 @@ export function showEndModal({ result, reason, onPlayAgain, onHome, score, elaps
   const p1 = document.createElement("p");
   if (isSurvival) {
     const t = typeof elapsedMs !== "undefined" ? fmtTime(elapsedMs) : "";
-    p1.textContent = `You survived Max Level for ${t}${typeof threshold !== "undefined" ? ` with level ${threshold} stacks.` : "."}`;
+    p1.textContent = `You survived Max Level for ${t}${typeof threshold !== "undefined" ? ` with stack limit ${threshold}.` : "."}`;
   } else {
     p1.textContent = reason || (result === "win" ? "Excellent!" : "Try again.");
   }
@@ -75,7 +75,7 @@ export function showEndModal({ result, reason, onPlayAgain, onHome, score, elaps
     const parts = [];
     if (typeof level !== "undefined") parts.push(`Level ${level}`);
     if (typeof elapsedMs !== "undefined") parts.push(`Time ${fmtTime(elapsedMs)}`);
-    if (typeof threshold !== "undefined") parts.push(`stacks ${threshold}`);
+    if (typeof threshold !== "undefined") parts.push(`stack limit ${threshold}`);
     p2.textContent = parts.join(" • ");
     body.appendChild(p2);
   }
@@ -455,7 +455,7 @@ export function showScoreboardModal({ getScores, onHome } = {}){
       } else {
         html = `Level ${s.level}. <span style="color: var(--accent); font-weight: 800;">Completed</span> in ${timeTxt}`;
       }
-      if (typeof s.threshold !== "undefined") html += ` - stack set to ${s.threshold}`;
+      if (typeof s.threshold !== "undefined") html += ` - stack limit ${s.threshold}`;
       if (when) html += ` on ${when}`;
       left.innerHTML = html;
 
@@ -464,7 +464,7 @@ export function showScoreboardModal({ getScores, onHome } = {}){
       share.className = "button";
       share.style.minHeight = "36px";
       share.addEventListener("click", async ()=>{
-        const stacksTxt = (typeof s.threshold !== "undefined") ? ` with level ${s.threshold} stacks` : "";
+        const stacksTxt = (typeof s.threshold !== "undefined") ? ` with stack limit ${s.threshold}` : "";
         const baseUrl = location.origin + location.pathname;
         const text = (s.mode === "survival")
           ? (s.level === 20
