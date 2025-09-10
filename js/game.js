@@ -72,6 +72,7 @@ const el = {
   spawnTimer: document.getElementById("spawnTimer"),
   submitBtn: document.getElementById("submitBtn"),
   clearBtn: document.getElementById("clearBtn"),
+  dropBtn: document.getElementById("dropBtn"),
   menuBtn: document.getElementById("menuBtn"),
   currentWordHeader: document.getElementById("currentWordHeader"),
   submitSplit: document.getElementById("submitSplit"),
@@ -208,6 +209,40 @@ function performSpawnTick(){
   repaint(false);
   return false;
 }
+
+/**
+ * Manual single-tile drop (instant spawn of one nextTarget)
+ * - If no targets exist, generate them (natural randomness)
+ * - Drop exactly one letter and reset the countdown
+ * - Respect lose-at-stack ceiling
+ * - Keep remaining targets blinking; if none remain, they'll be chosen on next natural cycle
+ */
+function manualDrop(){
+  if (gameOver) return;
+
+  if (!nextTargets.length){
+    chooseNextSpawns();
+  }
+  const t = nextTargets.shift();
+  if (!t) return;
+
+  gridStacks[t.idx].push(t.letter);
+
+  if (LOSE_ON_STACK_CEILING && gridStacks[t.idx].length >= STACK_CEILING){
+    endGame({ type:"lose", reason:`Stack hit ×${STACK_CEILING}` });
+    return;
+  }
+
+  // Reset the timer as if a spawn occurred
+  spawnCountdown = spawnInterval;
+
+  // Keep highlighting any remaining scheduled targets
+  blinkArmed = nextTargets.length > 0;
+
+  repaint(false);
+  updateTimersUI();
+}
+
 function applyTempoFromWordLen(len){
   const { interval, qty } = tempoForWordLen(len, difficulty);
   spawnInterval = interval;
@@ -371,6 +406,9 @@ function openSettings(){
  */
 el.submitBtn.addEventListener("click", trySubmit);
 el.clearBtn.addEventListener("click", clearSelection);
+if (el.dropBtn){
+  el.dropBtn.addEventListener("click", manualDrop);
+}
 if (el.menuBtn){
   el.menuBtn.addEventListener("click", ()=>{
     showMenuModal({
