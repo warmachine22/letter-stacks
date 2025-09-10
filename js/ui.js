@@ -422,8 +422,10 @@ export function showScoreboardModal({ getScores, onHome } = {}){
       .sort((a,b)=> (b.at||0) - (a.at||0));
     if (filtered.length === 0){
       const empty = document.createElement("div");
-      empty.textContent = "No scores yet.";
-      empty.style.opacity = ".8";
+      empty.textContent = "No scores yet. Play a game to add your first time.";
+      empty.style.opacity = ".9";
+      empty.style.textAlign = "center";
+      empty.style.padding = "8px 4px";
       list.appendChild(empty);
       return;
     }

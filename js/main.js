@@ -1,4 +1,3 @@
-import { showScoreboardModal } from "./ui.js";
 
 /**
  * Landing page interactions / lightweight config
@@ -41,28 +40,5 @@ import { showScoreboardModal } from "./ui.js";
         localStorage.setItem(key, v ? "true" : "false");
       }
     });
-  });
-  // Also wire the Home Scoreboard button (opens modal from landing)
-  document.addEventListener("DOMContentLoaded", () => {
-    const btn = document.getElementById("scoreBtnHome");
-    if (btn) {
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        const getScores = () => {
-          try {
-            const raw = localStorage.getItem("ws.scores");
-            if (!raw) return [];
-            const arr = JSON.parse(raw);
-            return Array.isArray(arr) ? arr : [];
-          } catch {
-            return [];
-          }
-        };
-        showScoreboardModal({
-          getScores,
-          onHome: () => { window.location.href = "index.html"; }
-        });
-      });
-    }
   });
 })();

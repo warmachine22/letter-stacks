@@ -600,5 +600,9 @@ function boot(){
   if (params.get("showSettings") === "1"){
     setTimeout(openSettings, 50);
   }
+  // If scoreboard=1 is present, open Scoreboard modal (works from Home deep-link)
+  if (params.get("scoreboard") === "1"){
+    setTimeout(()=> showScoreboardModal({ getScores, onHome: ()=> { window.location.href = "index.html"; } }), 50);
+  }
 }
 boot();
