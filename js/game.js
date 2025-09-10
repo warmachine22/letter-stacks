@@ -38,8 +38,8 @@ function loadSettings(){
       else if (d === "insane") lvl = 19;       // 3×4s
       else lvl = 1;
     }
-    // Clamp within 1–20
-    if (lvl < 1) lvl = 1; if (lvl > 20) lvl = 20;
+    // Clamp within 1–25
+    if (lvl < 1) lvl = 1; if (lvl > 25) lvl = 25;
 
     return {
       level: lvl,
@@ -158,13 +158,15 @@ function drawLetterBalanced(){
 }
 
 /**
- * Map level (1–20) to base interval (ms) and spawn quantity.
+ * Map level (1–25) to base interval (ms) and spawn quantity.
  * Levels:
  *  1–6:  1 tile every 10..5s
  *  7–12: 2 tiles every 10..5s
  * 13–18: 3 tiles every 10..5s
  * 19:    3 tiles every 4s
  * 20:    4 tiles every 10s
+ * 21–24: 4 tiles every 8..5s
+ * 25:    5 tiles every 6s
  */
 function presetForLevel(level){
   let qty = 1, secs = 10;
@@ -173,6 +175,8 @@ function presetForLevel(level){
   else if (level >= 13 && level <= 18) { qty = 3; secs = 10 - (level - 13);} // 10..5
   else if (level === 19) { qty = 3; secs = 4; }
   else if (level === 20) { qty = 4; secs = 10; }
+  else if (level >= 21 && level <= 24) { qty = 4; secs = 29 - level; }      // 21:8, 22:7, 23:6, 24:5
+  else if (level === 25) { qty = 5; secs = 6; }
   // Guardrails
   secs = Math.max(1, Math.min(60, secs));
   return { baseInterval: secs * 1000, spawnQty: qty };

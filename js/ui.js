@@ -49,7 +49,7 @@ export function showEndModal({ result, reason, onPlayAgain, onHome, score, elaps
   card.className = "modal-card";
 
   const h2 = document.createElement("h2");
-  const isSurvival = (mode === "survival" && (result === "lose" || result === "time") && (level === 20));
+  const isSurvival = (mode === "survival" && (result === "lose" || result === "time") && (level === 25));
   if (isSurvival) h2.textContent = "🛡️ You survived Max Level";
   else if (result === "win") h2.textContent = "🎉 You cleared the board!";
   else h2.textContent = "💀 Game Over";
@@ -158,6 +158,8 @@ export function showSettingsModal({ initial, onSave }){
     else if (lvl >= 13 && lvl <= 18) { qty = 3; secs = 10 - (lvl - 13); }
     else if (lvl === 19) { qty = 3; secs = 4; }
     else if (lvl === 20) { qty = 4; secs = 10; }
+    else if (lvl >= 21 && lvl <= 24) { qty = 4; secs = 29 - lvl; } // 21:8, 22:7, 23:6, 24:5
+    else if (lvl === 25) { qty = 5; secs = 6; }
     return { qty, secs };
   };
 
@@ -185,7 +187,7 @@ export function showSettingsModal({ initial, onSave }){
   body.appendChild(ruleLine);
 
   const setSelected = (lvl) => {
-    selectedLevel = Math.max(1, Math.min(20, lvl|0));
+    selectedLevel = Math.max(1, Math.min(25, lvl|0));
     // Update highlight states
     levelGrid.querySelectorAll("button[data-lvl]").forEach(btn => {
       const on = parseInt(btn.dataset.lvl, 10) === selectedLevel;
@@ -205,8 +207,8 @@ export function showSettingsModal({ initial, onSave }){
     ruleLine.textContent = `Level ${selectedLevel}: ${qtyTxt} every ${secs} sec`;
   };
 
-  // Render buttons 1..20
-  for (let lvl = 1; lvl <= 20; lvl++) {
+  // Render buttons 1..25
+  for (let lvl = 1; lvl <= 25; lvl++) {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = String(lvl);
@@ -227,14 +229,15 @@ export function showSettingsModal({ initial, onSave }){
       if (!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End"].includes(key)) return;
       ev.preventDefault();
       const idx = selectedLevel - 1;
+      const TOTAL = 25;
       const cols = 5;
       let ni = idx;
-      if (key === "ArrowLeft") ni = (idx + 20 - 1) % 20;
-      if (key === "ArrowRight") ni = (idx + 1) % 20;
-      if (key === "ArrowUp") ni = (idx + 20 - cols) % 20;
-      if (key === "ArrowDown") ni = (idx + cols) % 20;
+      if (key === "ArrowLeft") ni = (idx + TOTAL - 1) % TOTAL;
+      if (key === "ArrowRight") ni = (idx + 1) % TOTAL;
+      if (key === "ArrowUp") ni = (idx + TOTAL - cols) % TOTAL;
+      if (key === "ArrowDown") ni = (idx + cols) % TOTAL;
       if (key === "Home") ni = 0;
-      if (key === "End") ni = 19;
+      if (key === "End") ni = TOTAL - 1;
       setSelected(ni + 1);
       const toFocus = levelGrid.querySelector(`button[data-lvl="${ni+1}"]`);
       toFocus?.focus();
@@ -394,7 +397,7 @@ export function showScoreboardModal({ getScores, onHome } = {}){
   sel.className = "select";
   const optAll = document.createElement("option"); optAll.value = ""; optAll.textContent = "All Levels";
   sel.appendChild(optAll);
-  for (let i=1;i<=20;i++){
+  for (let i=1;i<=25;i++){
     const o = document.createElement("option");
     o.value = String(i);
     o.textContent = `Level ${i}`;
@@ -444,7 +447,7 @@ export function showScoreboardModal({ getScores, onHome } = {}){
       const when = s.at ? new Date(s.at).toLocaleString() : "";
       let html = "";
       if (s.mode === "survival") {
-        if (s.level === 20) {
+        if (s.level === 25) {
           html = `<span style="color: var(--danger); font-weight: 800;">Survived</span> Max Level for ${timeTxt}`;
         } else {
           html = `<span style="color: var(--danger); font-weight: 800;">Survived</span> Level ${s.level} for ${timeTxt}`;
@@ -464,8 +467,8 @@ export function showScoreboardModal({ getScores, onHome } = {}){
         const stacksTxt = (typeof s.threshold !== "undefined") ? ` with stack limit ${s.threshold}` : "";
         const baseUrl = location.origin + location.pathname;
         const text = (s.mode === "survival")
-          ? (s.level === 20
-              ? `I survived Letter Stacks Max Level 20 for ${timeTxt}${stacksTxt}!`
+          ? (s.level === 25
+              ? `I survived Letter Stacks Max Level 25 for ${timeTxt}${stacksTxt}!`
               : `I survived Letter Stacks Level ${s.level} for ${timeTxt}${stacksTxt}!`)
           : `I completed Letter Stacks Level ${s.level} in ${timeTxt}${stacksTxt}!`;
         try{
