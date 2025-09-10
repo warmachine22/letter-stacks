@@ -387,21 +387,30 @@ function endGame({ type="lose", reason="Run over." } = {}){
   el.clearBtn.disabled = true;
   blinkArmed = false;
   paintBlink(el.grid, []);
+  const elapsedMs = Math.max(0, Math.round((performance.now() - runStartMs)));
+  const lvl = settings.level || 1;
 
-  // On win, compute elapsed and persist score, and show richer message
+  // Record score details
   if (type === "win"){
-    const elapsedMs = Math.max(0, Math.round((performance.now() - runStartMs)));
-    addScore({ level: settings.level || 1, elapsedMs, at: Date.now() });
+    addScore({ level: lvl, elapsedMs, at: Date.now(), threshold: STACK_CEILING, mode: "win" });
     const mins = Math.floor(elapsedMs/1000/60);
     const secs = Math.floor((elapsedMs/1000) % 60);
     const timeTxt = `${mins}:${String(secs).padStart(2,'0')}`;
-    reason = `Completed Level ${settings.level || 1} in ${timeTxt}. Added to your Scoreboard.`;
+    reason = `Completed Level ${lvl} in ${timeTxt}. Added to your Scoreboard.`;
+  } else if (type === "lose" && lvl === 20) {
+    // Survival mode scoring for Max Level
+    addScore({ level: 20, elapsedMs, at: Date.now(), threshold: STACK_CEILING, mode: "survival" });
   }
 
   showEndModal({
     result: type === "win" ? "win" : "lose",
     reason,
-    onPlayAgain: ()=> resetGame()
+    onPlayAgain: ()=> resetGame(),
+    onHome: ()=> { window.location.href = "index.html"; },
+    level: lvl,
+    threshold: STACK_CEILING,
+    elapsedMs,
+    mode: (type === "lose" && lvl === 20) ? "survival" : (type === "win" ? "win" : undefined)
   });
 }
 function resetGame(){
@@ -564,7 +573,7 @@ if (el.menuBtn){
       onHome: ()=> { window.location.href = "index.html"; },
       onReset: ()=> resetGame(),
       onSettings: ()=> openSettings(),
-      onScoreboard: ()=> showScoreboardModal({ getScores })
+      onScoreboard: ()=> showScoreboardModal({ getScores, onHome: ()=> { window.location.href = "index.html"; } })
     });
   });
 }

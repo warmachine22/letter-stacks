@@ -36,7 +36,7 @@ export function fmtTime(ms){
  *  - onPlayAgain: () => void
  *  - onHome: () => void
  */
-export function showEndModal({ result, reason, onPlayAgain, onHome, score, elapsedMs } = {}){
+export function showEndModal({ result, reason, onPlayAgain, onHome, score, elapsedMs, level, threshold, mode } = {}){
   // Clean any existing
   document.querySelectorAll(".modal-overlay").forEach(n => n.remove());
 
@@ -49,23 +49,34 @@ export function showEndModal({ result, reason, onPlayAgain, onHome, score, elaps
   card.className = "modal-card";
 
   const h2 = document.createElement("h2");
-  if (result === "win") h2.textContent = "🎉 You cleared the board!";
+  const isSurvival = (mode === "survival" && (result === "lose" || result === "time") && (level === 20));
+  if (isSurvival) h2.textContent = "🛡️ You survived Max Level";
+  else if (result === "win") h2.textContent = "🎉 You cleared the board!";
   else h2.textContent = "💀 Game Over";
+  h2.style.fontSize = "clamp(22px, 5.2vw, 28px)";
+  h2.style.marginBottom = "8px";
   card.appendChild(h2);
 
   const body = document.createElement("div");
   body.className = "modal-body";
   const p1 = document.createElement("p");
-  p1.textContent = reason || (result === "win" ? "Excellent!" : "Try again.");
+  if (isSurvival) {
+    const t = typeof elapsedMs !== "undefined" ? fmtTime(elapsedMs) : "";
+    p1.textContent = `You survived Max Level for ${t}${typeof threshold !== "undefined" ? ` with level ${threshold} stacks.` : "."}`;
+  } else {
+    p1.textContent = reason || (result === "win" ? "Excellent!" : "Try again.");
+  }
   body.appendChild(p1);
 
-  // Optionally include score/time if provided (not used in MVP)
-  if (typeof score !== "undefined" || typeof elapsedMs !== "undefined"){
+  // Details line: level/time/stacks if provided
+  if (typeof level !== "undefined" || typeof elapsedMs !== "undefined" || typeof threshold !== "undefined"){
     const p2 = document.createElement("p");
+    p2.style.opacity = ".95";
     const parts = [];
-    if (typeof score !== "undefined") parts.push(`<strong>Score:</strong> ${score}`);
-    if (typeof elapsedMs !== "undefined") parts.push(`<strong>Time:</strong> ${fmtTime(elapsedMs)}`);
-    p2.innerHTML = parts.join(" &nbsp;&nbsp; ");
+    if (typeof level !== "undefined") parts.push(`Level ${level}`);
+    if (typeof elapsedMs !== "undefined") parts.push(`Time ${fmtTime(elapsedMs)}`);
+    if (typeof threshold !== "undefined") parts.push(`stacks ${threshold}`);
+    p2.textContent = parts.join(" • ");
     body.appendChild(p2);
   }
   card.appendChild(body);
@@ -357,7 +368,7 @@ export function showMenuModal({ onHome, onReset, onSettings, onScoreboard } = {}
  * - Lists local scores with optional level filter
  * - Provides share options via Web Share API (if available) or mailto/WhatsApp/SMS fallback
  */
-export function showScoreboardModal({ getScores } = {}){
+export function showScoreboardModal({ getScores, onHome } = {}){
   // Clean any existing
   document.querySelectorAll(".modal-overlay").forEach(n => n.remove());
 
@@ -432,27 +443,37 @@ export function showScoreboardModal({ getScores } = {}){
       const secs = Math.floor(Math.max(0, Math.round((s.elapsedMs||0)/1000)) % 60);
       const timeTxt = `${mins}:${String(secs).padStart(2,'0')}`;
       const when = s.at ? new Date(s.at).toLocaleString() : "";
-      left.textContent = `Level ${s.level} — ${timeTxt}  ${when ? `• ${when}` : ""}`;
+      const partsLeft = [];
+      if (s.mode === "survival" && s.level === 20) {
+        partsLeft.push(`Survived Max Level 20 — ${timeTxt}`);
+      } else {
+        partsLeft.push(`Level ${s.level} — ${timeTxt}`);
+      }
+      if (typeof s.threshold !== "undefined") partsLeft.push(`stacks ${s.threshold}`);
+      if (when) partsLeft.push(when);
+      left.textContent = partsLeft.join("  • ");
 
       const share = document.createElement("button");
       share.textContent = "Share";
       share.className = "button";
       share.style.minHeight = "36px";
       share.addEventListener("click", async ()=>{
-        const shareText = `I completed Letter Stacks Level ${s.level} in ${timeTxt}!`;
+        const stacksTxt = (typeof s.threshold !== "undefined") ? ` with level ${s.threshold} stacks` : "";
+        const baseUrl = location.origin + location.pathname;
+        const text = (s.mode === "survival" && s.level === 20)
+          ? `I survived Letter Stacks Max Level 20 for ${timeTxt}${stacksTxt}!`
+          : `I completed Letter Stacks Level ${s.level} in ${timeTxt}${stacksTxt}!`;
         try{
           if (navigator.share){
-            await navigator.share({ title: "Letter Stacks", text: shareText, url: location.href });
+            await navigator.share({ title: "Letter Stacks", text, url: baseUrl });
           } else if (navigator.clipboard && navigator.clipboard.writeText){
-            await navigator.clipboard.writeText(`${shareText} ${location.href}`);
+            await navigator.clipboard.writeText(`${text} ${baseUrl}`);
             showToast("Copied share text to clipboard");
           } else {
-            // Fallback: open mailto
-            const mail = `mailto:?subject=Letter%20Stacks&body=${encodeURIComponent(shareText)}%0A${encodeURIComponent(location.href)}`;
+            const mail = `mailto:?subject=Letter%20Stacks&body=${encodeURIComponent(text)}%0A${encodeURIComponent(baseUrl)}`;
             window.location.href = mail;
           }
         }catch(e){
-          // Silent fail or show toast
           showToast("Share canceled");
         }
       });
@@ -470,6 +491,12 @@ export function showScoreboardModal({ getScores } = {}){
 
   const actions = document.createElement("div");
   actions.className = "modal-actions";
+  if (typeof onHome === "function") {
+    const homeBtn = document.createElement("button");
+    homeBtn.textContent = "Home";
+    homeBtn.addEventListener("click", ()=> { overlay.remove(); onHome(); });
+    actions.appendChild(homeBtn);
+  }
   const close = document.createElement("button");
   close.textContent = "Close";
   close.addEventListener("click", ()=> overlay.remove());
