@@ -20,14 +20,14 @@ const SETTINGS_KEY = "ws.settings";
 function loadSettings(){
   try{
     const raw = localStorage.getItem(SETTINGS_KEY);
-    // Defaults: Level 1 and threshold 7
-    if (!raw) return { level: 1, threshold: "7" };
+    // Defaults: Level 1 and threshold 6
+    if (!raw) return { level: 1, threshold: "6" };
     const obj = JSON.parse(raw);
 
     // Threshold: coerce to 5–10
-    let thr = String(obj.threshold ?? "7");
+    let thr = String(obj.threshold ?? "6");
     const tn = parseInt(thr, 10);
-    if (!Number.isFinite(tn) || tn < 5 || tn > 10) thr = "7";
+    if (!Number.isFinite(tn) || tn < 5 || tn > 10) thr = "6";
 
     // Level: prefer obj.level, else migrate from legacy difficulty, else default to 1
     let lvl = parseInt(obj.level, 10);
@@ -47,7 +47,7 @@ function loadSettings(){
       threshold: thr
     };
   }catch{
-    return { level: 1, threshold:"7" };
+    return { level: 1, threshold:"6" };
   }
 }
 function saveSettings(s){

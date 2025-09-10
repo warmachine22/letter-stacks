@@ -138,34 +138,103 @@ export function showSettingsModal({ initial, onSave }){
     return wrap;
   };
 
-  // Level-based difficulty (wider dropdown, no label)
-  const levelSel = document.createElement("select");
-  levelSel.className = "select";
-  levelSel.style.width = "100%";
-  const makeOpt = (value, text, selected) => {
-    const o = document.createElement("option");
-    o.value = String(value);
-    o.textContent = text;
-    if (selected) o.selected = true;
-    return o;
-  };
-  // Levels:
-  // 1–6:  1 tile every 10..5s
-  // 7–12: 2 tiles every 10..5s
-  // 13–18: 3 tiles every 10..5s
-  // 19:    3 tiles every 4s
-  // 20:    4 tiles every 10s
+  // Level grid (5×4) selector replacing dropdown
   const selLevel = parseInt(initial?.level, 10) || 1;
-  for (let lvl = 1; lvl <= 20; lvl++){
+  let selectedLevel = selLevel;
+
+  // Helper to map level -> qty, secs
+  const levelInfo = (lvl) => {
     let qty = 1, secs = 10;
     if (lvl >= 1 && lvl <= 6) { qty = 1; secs = 11 - lvl; }
     else if (lvl >= 7 && lvl <= 12) { qty = 2; secs = 10 - (lvl - 7); }
     else if (lvl >= 13 && lvl <= 18) { qty = 3; secs = 10 - (lvl - 13); }
     else if (lvl === 19) { qty = 3; secs = 4; }
     else if (lvl === 20) { qty = 4; secs = 10; }
-    const label = `Level ${lvl} (${qty} ${qty === 1 ? "tile" : "tiles"} every ${secs} sec)`;
-    levelSel.appendChild(makeOpt(lvl, label, lvl === selLevel));
+    return { qty, secs };
+  };
+
+  // Label
+  const levelLabel = document.createElement("div");
+  levelLabel.textContent = "Select your level";
+  levelLabel.style.fontWeight = "600";
+  levelLabel.style.margin = "8px 0 4px 0";
+  body.appendChild(levelLabel);
+
+  // Grid container
+  const levelGrid = document.createElement("div");
+  levelGrid.style.display = "grid";
+  levelGrid.style.gridTemplateColumns = "repeat(5, 1fr)";
+  levelGrid.style.gap = "8px";
+  levelGrid.setAttribute("role", "grid");
+  levelGrid.setAttribute("aria-label", "Select your level");
+  body.appendChild(levelGrid);
+
+  // Rule line under the grid
+  const ruleLine = document.createElement("div");
+  ruleLine.style.margin = "6px 0 12px";
+  ruleLine.style.color = "var(--muted)";
+  ruleLine.style.fontSize = "14px";
+  body.appendChild(ruleLine);
+
+  const setSelected = (lvl) => {
+    selectedLevel = Math.max(1, Math.min(20, lvl|0));
+    // Update highlight states
+    levelGrid.querySelectorAll("button[data-lvl]").forEach(btn => {
+      const on = parseInt(btn.dataset.lvl, 10) === selectedLevel;
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      if (on) {
+        btn.style.background = "var(--accent)";
+        btn.style.color = "#0b0d12";
+        btn.style.borderColor = "#3ed1a1";
+      } else {
+        btn.style.background = "var(--panel)";
+        btn.style.color = "var(--text)";
+        btn.style.borderColor = "#222733";
+      }
+    });
+    const { qty, secs } = levelInfo(selectedLevel);
+    const qtyTxt = qty === 1 ? "1 tile" : `${qty} tiles`;
+    ruleLine.textContent = `Level ${selectedLevel}: ${qtyTxt} every ${secs} sec`;
+  };
+
+  // Render buttons 1..20
+  for (let lvl = 1; lvl <= 20; lvl++) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = String(lvl);
+    b.dataset.lvl = String(lvl);
+    b.setAttribute("aria-pressed", "false");
+    b.style.minHeight = "36px";
+    b.style.padding = "10px 8px";
+    b.style.borderRadius = "10px";
+    b.style.border = "1px solid #222733";
+    b.style.fontWeight = "800";
+    b.style.fontSize = "clamp(14px, 3.4vw, 16px)";
+    b.style.cursor = "pointer";
+    b.style.background = "var(--panel)";
+    b.style.color = "var(--text)";
+    b.addEventListener("click", () => setSelected(lvl));
+    b.addEventListener("keydown", (ev) => {
+      const key = ev.key;
+      if (!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End"].includes(key)) return;
+      ev.preventDefault();
+      const idx = selectedLevel - 1;
+      const cols = 5;
+      let ni = idx;
+      if (key === "ArrowLeft") ni = (idx + 20 - 1) % 20;
+      if (key === "ArrowRight") ni = (idx + 1) % 20;
+      if (key === "ArrowUp") ni = (idx + 20 - cols) % 20;
+      if (key === "ArrowDown") ni = (idx + cols) % 20;
+      if (key === "Home") ni = 0;
+      if (key === "End") ni = 19;
+      setSelected(ni + 1);
+      const toFocus = levelGrid.querySelector(`button[data-lvl="${ni+1}"]`);
+      toFocus?.focus();
+    });
+    levelGrid.appendChild(b);
   }
+  // Initialize selection and rule line
+  setSelected(selectedLevel);
 
 
   // Threshold (5 through 10)
@@ -178,11 +247,6 @@ export function showSettingsModal({ initial, onSave }){
     thr.appendChild(o);
   }
 
-  // Place the level select without a label (wider)
-  const levelWrap = document.createElement("div");
-  levelWrap.style.margin = "12px 0";
-  levelWrap.appendChild(levelSel);
-  body.appendChild(levelWrap);
 
 
   // Threshold (lose condition)
@@ -204,7 +268,7 @@ export function showSettingsModal({ initial, onSave }){
   save.textContent = "Save & Apply";
   save.addEventListener("click", ()=>{
     const settings = {
-      level: parseInt(levelSel.value, 10) || 1,
+      level: selectedLevel || 1,
       threshold: thr.value
     };
     overlay.remove();
