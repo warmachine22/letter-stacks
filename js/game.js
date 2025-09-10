@@ -266,7 +266,7 @@ function loop(now){
 
   // Safety: if the board is cleared (e.g., timing edge cases), end as win.
   if (!gameOver && boardIsCleared()){
-    endGame({ type:"win", reason:"🎉 You cleared the board!" });
+    endGame({ type:"win", reason:"🎉 You cleared the board! Try increasing the difficulty next time." });
     return;
   }
 
@@ -322,7 +322,7 @@ async function trySubmit(){
 
   // Win check
   if (boardIsCleared()){
-    endGame({ type:"win", reason:"🎉 You cleared the board!" });
+    endGame({ type:"win", reason:"🎉 You cleared the board! Try increasing the difficulty next time." });
     return;
   }
 
