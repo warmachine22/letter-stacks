@@ -112,6 +112,10 @@ let spawnInterval = baseInterval;
 let spawnCountdown = spawnInterval;
 let spawnQtyCurrent = spawnQty;
 
+// Stage tempo changes to apply on the next spawn cycle (not mid-cycle)
+let nextIntervalPending = null;
+let nextQtyPending = null;
+
 let nextTargets = [];                    // [{ idx:number, letter:string }]
 let blinkArmed = false;
 
@@ -360,13 +364,12 @@ function manualDrop(){
 }
 
 function applyTempoFromWordLen(len){
-  // Preserve prior behavior: when "Insane", 3-letter words may increase qty by +1 (max 4).
-  // We approximate by treating any base where spawnQtyCurrent >= 3 as "Insane".
+  // Preserve prior behavior choice but stage changes: apply AFTER current cycle finishes
   const presetName = (spawnQtyCurrent >= 3) ? "Insane" : "Medium";
   const { interval, qty } = tempoForWordLen(len, presetName);
-  spawnInterval = interval;
-  spawnQtyCurrent = qty;
-  spawnCountdown = spawnInterval;
+  nextIntervalPending = interval;
+  nextQtyPending = qty;
+  return { interval, qty };
 }
 function boardIsCleared(){
   return gridStacks.every(st => st.length === 0);
@@ -455,6 +458,15 @@ function loop(now){
   if (spawnCountdown <= 0){
     const ended = performSpawnTick();
     if (ended) return;
+
+    // Apply any pending tempo for the NEW cycle (do not cancel the just-finished cycle)
+    if (nextIntervalPending != null && nextQtyPending != null){
+      spawnInterval = nextIntervalPending;
+      spawnQtyCurrent = nextQtyPending;
+      nextIntervalPending = null;
+      nextQtyPending = null;
+    }
+
     spawnCountdown = spawnInterval;
     chooseNextSpawns();
     // Re-render to display clocks on newly chosen targets
@@ -504,10 +516,11 @@ async function trySubmit(){
     return;
   }
 
-  // Tempo changes according to difficulty & length
-  applyTempoFromWordLen(len);
-  showToast(`Next ${spawnQtyCurrent} in ${(spawnInterval/1000).toFixed(1)}s`);
-  chooseNextSpawns();
+  // Tempo changes take effect next cycle (do not reset current countdown/targets)
+  {
+    const { interval, qty } = applyTempoFromWordLen(len);
+    showToast(`Next cycle: ${qty} ${qty===1 ? "tile" : "tiles"} every ${(interval/1000).toFixed(1)}s`);
+  }
 }
 
 /* ============================
