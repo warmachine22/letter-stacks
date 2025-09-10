@@ -413,7 +413,7 @@ export function showScoreboardModal({ getScores, onHome } = {}){
   list.style.gap = "8px";
   body.appendChild(list);
 
-  const scores = (typeof getScores === "function" ? getScores() : []);
+  let scores = (typeof getScores === "function" ? getScores() : []);
   const render = () => {
     const filter = sel.value.trim();
     list.innerHTML = "";
@@ -445,15 +445,19 @@ export function showScoreboardModal({ getScores, onHome } = {}){
       const secs = Math.floor(Math.max(0, Math.round((s.elapsedMs||0)/1000)) % 60);
       const timeTxt = `${mins}:${String(secs).padStart(2,'0')}`;
       const when = s.at ? new Date(s.at).toLocaleString() : "";
-      const partsLeft = [];
-      if (s.mode === "survival" && s.level === 20) {
-        partsLeft.push(`Survived Max Level 20 — ${timeTxt}`);
+      let html = "";
+      if (s.mode === "survival") {
+        if (s.level === 20) {
+          html = `<span style="color: var(--danger); font-weight: 800;">Survived</span> Max Level for ${timeTxt}`;
+        } else {
+          html = `<span style="color: var(--danger); font-weight: 800;">Survived</span> Level ${s.level} for ${timeTxt}`;
+        }
       } else {
-        partsLeft.push(`Level ${s.level} — ${timeTxt}`);
+        html = `Level ${s.level}. <span style="color: var(--accent); font-weight: 800;">Completed</span> in ${timeTxt}`;
       }
-      if (typeof s.threshold !== "undefined") partsLeft.push(`stacks ${s.threshold}`);
-      if (when) partsLeft.push(when);
-      left.textContent = partsLeft.join("  • ");
+      if (typeof s.threshold !== "undefined") html += ` - stack set to ${s.threshold}`;
+      if (when) html += ` on ${when}`;
+      left.innerHTML = html;
 
       const share = document.createElement("button");
       share.textContent = "Share";
@@ -462,8 +466,10 @@ export function showScoreboardModal({ getScores, onHome } = {}){
       share.addEventListener("click", async ()=>{
         const stacksTxt = (typeof s.threshold !== "undefined") ? ` with level ${s.threshold} stacks` : "";
         const baseUrl = location.origin + location.pathname;
-        const text = (s.mode === "survival" && s.level === 20)
-          ? `I survived Letter Stacks Max Level 20 for ${timeTxt}${stacksTxt}!`
+        const text = (s.mode === "survival")
+          ? (s.level === 20
+              ? `I survived Letter Stacks Max Level 20 for ${timeTxt}${stacksTxt}!`
+              : `I survived Letter Stacks Level ${s.level} for ${timeTxt}${stacksTxt}!`)
           : `I completed Letter Stacks Level ${s.level} in ${timeTxt}${stacksTxt}!`;
         try{
           if (navigator.share){
@@ -493,6 +499,25 @@ export function showScoreboardModal({ getScores, onHome } = {}){
 
   const actions = document.createElement("div");
   actions.className = "modal-actions";
+
+  const clearBtn = document.createElement("button");
+  clearBtn.className = "danger";
+  clearBtn.textContent = "Clear Data";
+  clearBtn.addEventListener("click", ()=>{
+    const ok = window.confirm("This will permanently delete all local scores and settings on this device. This cannot be undone. Continue?");
+    if (!ok) return;
+    try{
+      localStorage.removeItem("ws.scores");
+      localStorage.removeItem("ws.settings");
+      scores = [];
+      render();
+      showToast("All scores and settings cleared");
+    }catch(e){
+      showToast("Unable to clear data");
+    }
+  });
+  actions.appendChild(clearBtn);
+
   if (typeof onHome === "function") {
     const homeBtn = document.createElement("button");
     homeBtn.textContent = "Home";

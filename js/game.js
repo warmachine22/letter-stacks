@@ -397,9 +397,9 @@ function endGame({ type="lose", reason="Run over." } = {}){
     const secs = Math.floor((elapsedMs/1000) % 60);
     const timeTxt = `${mins}:${String(secs).padStart(2,'0')}`;
     reason = `Completed Level ${lvl} in ${timeTxt}. Added to your Scoreboard.`;
-  } else if (type === "lose" && lvl === 20) {
-    // Survival mode scoring for Max Level
-    addScore({ level: 20, elapsedMs, at: Date.now(), threshold: STACK_CEILING, mode: "survival" });
+  } else if (type === "lose") {
+    // Survival mode scoring for any level
+    addScore({ level: lvl, elapsedMs, at: Date.now(), threshold: STACK_CEILING, mode: "survival" });
   }
 
   showEndModal({
@@ -410,7 +410,7 @@ function endGame({ type="lose", reason="Run over." } = {}){
     level: lvl,
     threshold: STACK_CEILING,
     elapsedMs,
-    mode: (type === "lose" && lvl === 20) ? "survival" : (type === "win" ? "win" : undefined)
+    mode: (type === "lose") ? "survival" : (type === "win" ? "win" : undefined)
   });
 }
 function resetGame(){
