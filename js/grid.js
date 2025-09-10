@@ -11,7 +11,7 @@ function topLetter(stack){
 }
 
 export function renderGrid(gridEl, gridStacks, selectedSet, opts = {}){
-  const { gridSize, blinkTargets = [], onTileClick } = opts;
+  const { gridSize, blinkTargets = [], onTileClick, threshold } = opts;
   if (!gridEl) return;
 
   if (gridSize) {
@@ -31,6 +31,18 @@ export function renderGrid(gridEl, gridStacks, selectedSet, opts = {}){
     tile.textContent = L ?? "";
 
     const stackLen = gridStacks[i]?.length || 0;
+
+    // Apply warn/danger classes when a stack threshold is active
+    if (typeof threshold === "number" && Number.isFinite(threshold) && threshold > 0){
+      const warnAt = Math.ceil(threshold * 0.5);
+      const dangerAt = Math.max(1, threshold - 2);
+      if (stackLen >= dangerAt) {
+        tile.classList.add("danger");
+      } else if (stackLen >= warnAt) {
+        tile.classList.add("warn");
+      }
+    }
+
     if (stackLen > 1){
       const b = document.createElement("div");
       b.className = "badge";

@@ -124,6 +124,7 @@ function layout(){
 function repaint(withBlink = true){
   renderGrid(el.grid, gridStacks, selected, {
     gridSize: GRID_SIZE,
+    threshold: LOSE_ON_STACK_CEILING ? STACK_CEILING : undefined,
     blinkTargets: withBlink && blinkArmed && nextTargets.length ? nextTargets.map(t=>t.idx) : [],
     onTileClick: (i)=>{
       if (gameOver) return;
@@ -152,14 +153,43 @@ function initGrid(){
 }
 function chooseNextSpawns(){
   nextTargets = [];
-  const taken = new Set();
   const qty = spawnQtyCurrent;
-  for (let k=0; k<qty; k++){
-    let idx; let guard=0;
-    do{ idx = Math.floor(Math.random() * GRID_SIZE * GRID_SIZE); guard++; } while (taken.has(idx) && guard<200);
-    taken.add(idx);
-    nextTargets.push({ idx, letter: drawLetter(bag, GRID_SIZE) });
+  const total = GRID_SIZE * GRID_SIZE;
+
+  // Collect empty tiles (length === 0) and all indices
+  const empties = [];
+  const all = [];
+  for (let i=0;i<total;i++){
+    all.push(i);
+    if (gridStacks[i].length === 0) empties.push(i);
   }
+
+  // Fisher–Yates shuffle helper
+  const shuffle = (arr) => {
+    for (let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+
+  const picks = [];
+  shuffle(empties);
+  // Prioritize empty tiles first
+  while (picks.length < qty && empties.length){
+    picks.push(empties.pop());
+  }
+
+  // Fill remaining from the rest of the board
+  if (picks.length < qty){
+    const rest = all.filter(i => !picks.includes(i));
+    shuffle(rest);
+    while (picks.length < qty && rest.length){
+      picks.push(rest.pop());
+    }
+  }
+
+  nextTargets = picks.map(idx => ({ idx, letter: drawLetter(bag, GRID_SIZE) }));
 }
 function performSpawnTick(){
   if (!nextTargets.length) chooseNextSpawns();
@@ -230,6 +260,12 @@ function loop(now){
   let dt = now - lastTick;
   if (!Number.isFinite(dt) || dt < 0 || dt > 1000) dt = 16; // guard against NaN/large gaps
   lastTick = now;
+
+  // Safety: if the board is cleared (e.g., timing edge cases), end as win.
+  if (!gameOver && boardIsCleared()){
+    endGame({ type:"win", reason:"🎉 You cleared the board!" });
+    return;
+  }
 
   spawnCountdown -= dt;
 

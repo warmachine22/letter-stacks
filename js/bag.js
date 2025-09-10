@@ -46,11 +46,16 @@ export function drawLetter(bag, size){
 }
 
 export function returnLettersBack(bag, letters){
-  for(const L of letters){ bag.push(L); }
-  // light shuffle
-  for(let r=0;r<Math.min(letters.length, 10); r++){
-    const i = Math.floor(Math.random()*bag.length);
-    const j = Math.floor(Math.random()*bag.length);
+  // Insert each returned letter at a random position to avoid clustering at the end
+  for (const L of letters){
+    const pos = Math.floor(Math.random() * (bag.length + 1));
+    bag.splice(pos, 0, L);
+  }
+  // Diffuse recently returned letters: perform additional random swaps across the bag
+  const swaps = Math.min(bag.length, Math.max(10, letters.length * 5));
+  for (let r = 0; r < swaps; r++){
+    const i = Math.floor(Math.random() * bag.length);
+    const j = Math.floor(Math.random() * bag.length);
     [bag[i], bag[j]] = [bag[j], bag[i]];
   }
 }

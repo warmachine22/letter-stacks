@@ -25,6 +25,17 @@
   box-shadow: 0 0 0 4px rgba(110,231,183,.12);
   transform: translateY(-1px);
 }
+/* Danger levels based on stack height */
+.tile.warn{
+  background: #2b2015;
+  border-color: #51371b;
+  box-shadow: inset 0 0 0 1px rgba(255,165,0,.08);
+}
+.tile.danger{
+  background: #311718;
+  border-color: #5a2326;
+  box-shadow: inset 0 0 0 1px rgba(239,68,68,.12);
+}
 .badge{
   position:absolute; right:6px; top:6px;
   color:#fff; font-weight:800;
