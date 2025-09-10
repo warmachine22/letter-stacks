@@ -272,8 +272,8 @@ function loop(now){
 
   spawnCountdown -= dt;
 
-  // last-second pre-blink
-  blinkArmed = spawnCountdown <= 1000;
+  // Show next spawn targets for the entire countdown
+  blinkArmed = nextTargets.length > 0;
   paintBlink(el.grid, blinkArmed ? nextTargets.map(t=>t.idx) : []);
 
   if (spawnCountdown <= 0){
