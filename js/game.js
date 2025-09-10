@@ -362,45 +362,55 @@ function chooseNextSpawns(){
   };
 
   // Extreme Level 26:
-  // - 2 targets from tallest stacks (if tie, pick any two randomly; if fewer than 2 at max height, pull from next tallest)
-  // - Remaining (qty - 2) fully random across all tiles (no empty-tile priority)
+  // - Pick exactly 6 distinct indices: 2 from tallest (ties random; fall through to next-tallest if needed) + 4 random anywhere.
+  // - No empty-tile priority; uniqueness guaranteed via Set.
   if ((settings.level || 1) === 26){
-    const heights = Array.from({length: total}, (_, i) => ({ i, h: gridStacks[i].length }));
-    const maxH = heights.reduce((m, x) => Math.max(m, x.h), 0);
-    const tallest = heights.filter(x => x.h === maxH).map(x => x.i);
+    const heights = Array.from({ length: total }, (_, i) => ({ i, h: gridStacks[i].length }));
+    const byHeightDesc = [...heights].sort((a, b) => b.h - a.h);
 
-    const picks = [];
-    shuffle(tallest);
-    while (picks.length < Math.min(2, qty) && tallest.length){
-      picks.push(tallest.pop());
-    }
-
-    // If fewer than 2 tallest were picked, fill from next tallest groups
-    let needTall = Math.min(2, qty) - picks.length;
-    if (needTall > 0){
-      const remaining = heights.filter(x => !picks.includes(x.i));
-      // Sort remaining by height desc
-      remaining.sort((a,b) => b.h - a.h);
-      let k = 0;
-      while (needTall > 0 && k < remaining.length){
-        const hVal = remaining[k].h;
-        const group = remaining
-          .filter(x => x.h === hVal && !picks.includes(x.i))
-          .map(x => x.i);
-        shuffle(group);
-        while (needTall > 0 && group.length){
-          picks.push(group.pop());
-          needTall--;
-        }
-        while (k < remaining.length && remaining[k].h === hVal) k++;
+    // Local shuffle
+    const shuffle = (arr) => {
+      for (let i = arr.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
       }
+      return arr;
+    };
+
+    const chosen = new Set();
+    const picks = [];
+
+    // 1) Up to 2 from tallest heights (ties random; then next-tallest if needed)
+    let i = 0;
+    while (picks.length < Math.min(2, qty) && i < byHeightDesc.length){
+      const hVal = byHeightDesc[i].h;
+      const group = byHeightDesc
+        .filter(x => x.h === hVal && !chosen.has(x.i))
+        .map(x => x.i);
+      shuffle(group);
+      while (picks.length < Math.min(2, qty) && group.length){
+        const idx = group.pop();
+        if (!chosen.has(idx)){ chosen.add(idx); picks.push(idx); }
+      }
+      while (i < byHeightDesc.length && byHeightDesc[i].h === hVal) i++;
     }
 
-    // Remaining targets: random from all tiles (no empty priority)
-    const allIdx = Array.from({length: total}, (_, i) => i).filter(i => !picks.includes(i));
-    shuffle(allIdx);
-    while (picks.length < qty && allIdx.length){
-      picks.push(allIdx.pop());
+    // 2) Remaining picks random anywhere (excluding already chosen)
+    const remaining = [];
+    for (let j = 0; j < total; j++){
+      if (!chosen.has(j)) remaining.push(j);
+    }
+    shuffle(remaining);
+    while (picks.length < qty && remaining.length){
+      const idx = remaining.pop();
+      if (!chosen.has(idx)){ chosen.add(idx); picks.push(idx); }
+    }
+
+    // 3) Final guard to ensure qty distinct indices
+    if (picks.length < qty){
+      for (let j = 0; j < total && picks.length < qty; j++){
+        if (!chosen.has(j)){ chosen.add(j); picks.push(j); }
+      }
     }
 
     nextTargets = picks.map(idx => ({ idx }));
