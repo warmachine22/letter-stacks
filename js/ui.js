@@ -104,9 +104,6 @@ export function showEndModal({ result, reason, onPlayAgain, onHome, score, elaps
   actions.appendChild(again);
   card.appendChild(actions);
 
-  overlay.addEventListener("click", (e)=>{
-    if (e.target === overlay) overlay.remove();
-  });
 
   overlay.appendChild(card);
   document.body.appendChild(overlay);
