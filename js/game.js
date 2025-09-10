@@ -418,32 +418,71 @@ function chooseNextSpawns(){
   }
 
   // Default behavior for other levels:
-  // Collect empty tiles (length === 0) and all indices
-  const empties = [];
-  const all = [];
-  for (let i=0;i<total;i++){
-    all.push(i);
-    if (gridStacks[i].length === 0) empties.push(i);
-  }
+  if (qty >= 2){
+    // Levels 7–25: 1 targets tallest; remaining random anywhere (no empty priority), all unique
+    const chosen = new Set();
+    const picks = [];
 
-  const picks = [];
-  shuffle(empties);
-  // Prioritize empty tiles first
-  while (picks.length < qty && empties.length){
-    picks.push(empties.pop());
-  }
-
-  // Fill remaining from the rest of the board
-  if (picks.length < qty){
-    const rest = all.filter(i => !picks.includes(i));
-    shuffle(rest);
-    while (picks.length < qty && rest.length){
-      picks.push(rest.pop());
+    // 1) One targeted from tallest
+    const heights = Array.from({ length: total }, (_, i) => ({ i, h: gridStacks[i].length }));
+    const byHeightDesc = [...heights].sort((a,b) => b.h - a.h);
+    const shuffleLocal = (arr) => { for (let k = arr.length - 1; k > 0; k--){ const j = Math.floor(Math.random() * (k + 1)); [arr[k], arr[j]] = [arr[j], arr[k]]; } return arr; };
+    let t = 0;
+    while (picks.length < 1 && t < byHeightDesc.length){
+      const hVal = byHeightDesc[t].h;
+      const group = byHeightDesc.filter(x => x.h === hVal && !chosen.has(x.i)).map(x => x.i);
+      shuffleLocal(group);
+      while (picks.length < 1 && group.length){
+        const idx = group.pop();
+        if (!chosen.has(idx)){ chosen.add(idx); picks.push(idx); }
+      }
+      while (t < byHeightDesc.length && byHeightDesc[t].h === hVal) t++;
     }
-  }
 
-  // Defer letter draw to the actual spawn/drop moment (reduce pre-batch clustering)
-  nextTargets = picks.map(idx => ({ idx }));
+    // 2) Remaining picks random anywhere
+    const pool = [];
+    for (let j = 0; j < total; j++){ if (!chosen.has(j)) pool.push(j); }
+    shuffleLocal(pool);
+    while (picks.length < qty && pool.length){
+      const idx = pool.pop();
+      if (!chosen.has(idx)){ chosen.add(idx); picks.push(idx); }
+    }
+
+    // 3) Final guard
+    if (picks.length < qty){
+      for (let j = 0; j < total && picks.length < qty; j++){
+        if (!chosen.has(j)){ chosen.add(j); picks.push(j); }
+      }
+    }
+
+    nextTargets = picks.map(idx => ({ idx }));
+  } else {
+    // Levels 1–6: Prioritize empty tiles first, then random anywhere
+    const empties = [];
+    const all = [];
+    for (let i=0;i<total;i++){
+      all.push(i);
+      if (gridStacks[i].length === 0) empties.push(i);
+    }
+
+    const picks = [];
+    shuffle(empties);
+    // Prioritize empty tiles first
+    while (picks.length < qty && empties.length){
+      picks.push(empties.pop());
+    }
+
+    // Fill remaining from the rest of the board
+    if (picks.length < qty){
+      const rest = all.filter(i => !picks.includes(i));
+      shuffle(rest);
+      while (picks.length < qty && rest.length){
+        picks.push(rest.pop());
+      }
+    }
+
+    nextTargets = picks.map(idx => ({ idx }));
+  }
 }
 function performSpawnTick(){
   if (!nextTargets.length) chooseNextSpawns();
@@ -509,14 +548,12 @@ function applyTempoFromWordLen(len){
     return { interval: null, qty: spawnQtyCurrent };
   }
   // Simplified next-cycle rules relative to baseInterval:
-  // 3 letters => base - 3s (min 1s), 4 letters => no change, 5+ letters => base + 3s
+  // 3 letters => base - 3s (min 1s), 4+ letters => no change
   let interval = null;
   if (len === 3){
     interval = Math.max(1000, (baseInterval - 3000));
-  } else if (len >= 5){
-    interval = (baseInterval + 3000);
   } else {
-    interval = null; // 4 letters => no change
+    interval = null; // 4+ letters => no change
   }
   if (interval != null){
     nextIntervalPending = interval;
@@ -704,11 +741,8 @@ async function trySubmit(){
     } else if (len === 3){
       const secs = Math.max(1, Math.floor((baseInterval - 3000) / 1000));
       showToast(`Next cycle: every ${secs}s (faster)`);
-    } else if (len === 4){
-      showToast(`Next cycle: no change`);
     } else {
-      const secs = Math.floor((baseInterval + 3000) / 1000);
-      showToast(`Next cycle: every ${secs}s (slower)`);
+      showToast(`Next cycle: no change`);
     }
     // Reset idle timer on successful submit
     lastSubmitMs = performance.now();

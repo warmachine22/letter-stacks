@@ -36,11 +36,14 @@ Choose a Level (1–26). Each level sets a base cadence and spawn quantity:
 - Level 25: 5 tiles every 6s
 - Level 26 (Extreme): 6 tiles every 6s (fixed tempo)
 
+Targeting:
+- Levels 7–25: when 2+ tiles drop, 1 targets the tallest stack (random among ties); the rest are random anywhere.
+- Level 26 (Extreme): of the 6 targets each cycle, 2 go to the tallest stack(s); the remaining 4 are random anywhere.
+
 After each valid submission, the tempo adapts based on word length (simplified rules):
 
 - 3 letters: next drop is faster by 3 seconds from the level’s base timing (then it returns to normal)
-- 4 letters: no change (stays at the level’s base timing)
-- 5+ letters: next drop is slower by 3 seconds from the level’s base timing (then it returns to normal)
+- 4+ letters: no change (stays at the level’s base timing)
 
 Idle acceleration:
 - If 12 seconds pass without playing a word, drops run at about 50% of the base timing (rounded down to whole seconds) until you play a word.

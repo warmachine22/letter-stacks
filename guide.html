@@ -59,7 +59,7 @@
         </div>
         <div class="step">
           <div class="ico">4</div>
-          <div><strong>Targeting:</strong> Default: spawns fill <em>empty tiles first</em> (random among empties), then randomly anywhere. <strong>Extreme Level (26):</strong> of the 6 targets each cycle, 2 go to the tallest stack(s) (random among ties); the remaining 4 are random anywhere.</div>
+          <div><strong>Targeting:</strong> Default: spawns fill <em>empty tiles first</em> (random among empties), then randomly anywhere. <strong>Levels 7–25:</strong> when 2+ tiles drop, 1 targets the tallest stack (random among ties); the rest are random anywhere. <strong>Extreme Level (26):</strong> of the 6 targets each cycle, 2 go to the tallest stack(s) (random among ties); the remaining 4 are random anywhere.</div>
         </div>
         <div class="step">
           <div class="ico">5</div>
@@ -94,8 +94,7 @@
             <strong>Tempo adapts to word length (simplified):</strong>
             <ul>
               <li><strong>3 letters:</strong> next drop is faster by 3 seconds from your level’s base timing (then returns to normal)</li>
-              <li><strong>4 letters:</strong> no change (stays at the level’s base timing)</li>
-              <li><strong>5+ letters:</strong> next drop is slower by 3 seconds from your level’s base timing (then returns to normal)</li>
+              <li><strong>4+ letters:</strong> no change (stays at the level’s base timing)</li>
             </ul>
             <div class="note">If 12 seconds pass without playing a word, drops run at about 50% of the base timing (rounded down) until you play a word. Extreme Level (26) ignores adaptive tempo and idle acceleration — it always runs 6 tiles every 6s.</div>
           </div>
