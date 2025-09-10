@@ -33,11 +33,25 @@ Choose a Level (1–20). Each level sets a base cadence and spawn quantity:
 - Level 19: 3 tiles every 4s
 - Level 20: 4 tiles every 10s
 
-After each valid submission, the tempo adapts based on word length:
+After each valid submission, the tempo adapts based on word length (simplified rules):
 
-- 3 letters: speeds up (shorter interval, floor 3s)
-- 4 letters: neutral (base interval)
-- 5+ letters: slows down (longer interval, cap 12s)
+- 3 letters: next drop is faster by 3 seconds from the level’s base timing (then it returns to normal)
+- 4 letters: no change (stays at the level’s base timing)
+- 5+ letters: next drop is slower by 3 seconds from the level’s base timing (then it returns to normal)
+
+Idle acceleration:
+- If 12 seconds pass without playing a word, drops run at about 50% of the base timing (rounded down to whole seconds) until you play a word.
+
+## Letter selection and balance
+
+- Baseline bag: Letters come from a Scrabble‑style mix (vowels and consonants) with shuffled bags. When the bag empties, it refills automatically (so you never “run out”).
+- Decide at the moment: Each letter is decided right when it appears (timer spawn or Drop), not earlier. This avoids “pre‑batched” streaks.
+- Gentle balancing: If the visible top layer of tiles has too many vowels (≈35% or more), the game prefers to spawn a consonant. If it’s very consonant‑heavy (≈25% or fewer vowels), it prefers a vowel. It scans a small slice of the bag for a good match; if none is found quickly, it just uses the next natural draw. This keeps play fair and prevents getting “stuck.”
+- Preserves variety: Rare letters still show up; nothing is hard‑blocked. This is a slight nudge, not a rewrite of the distribution.
+
+### Vowel meter (debug/insight)
+
+- The header (top‑left) shows “V: NN%”, the percentage of visible vowels (top letters only). This helps you see balance in real time while playing.
 
 ## Scoreboard (local)
 
@@ -105,6 +119,7 @@ js/
 
 - A Service Worker (sw.js) pre-caches the app shell and `data/words.json` on first load over HTTP(S).
 - Test locally: run a static server (e.g., `python -m http.server 8000`), load the app once, then switch DevTools to "Offline" and reload.
+- If you don’t see recent changes (new UI or behavior), do a hard reload (Ctrl+F5 / Cmd+Shift+R). You can also use DevTools → Application → Service Workers → Update/Unregister then reload.
 - Note: Service Workers are not active under `file://` URLs; use a local server.
 
 ## License

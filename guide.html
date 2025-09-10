@@ -88,12 +88,13 @@
         <div class="step">
           <div class="ico">B</div>
           <div>
-            <strong>Tempo adapts to word length:</strong>
+            <strong>Tempo adapts to word length (simplified):</strong>
             <ul>
-              <li><strong>3 letters:</strong> speeds up (shorter interval, floor 3s)</li>
-              <li><strong>4 letters:</strong> neutral (base interval)</li>
-              <li><strong>5+ letters:</strong> slows down (longer interval, cap 12s)</li>
+              <li><strong>3 letters:</strong> next drop is faster by 3 seconds from your level’s base timing (then returns to normal)</li>
+              <li><strong>4 letters:</strong> no change (stays at the level’s base timing)</li>
+              <li><strong>5+ letters:</strong> next drop is slower by 3 seconds from your level’s base timing (then returns to normal)</li>
             </ul>
+            <div class="note">If 12 seconds pass without playing a word, drops run at about 50% of the base timing (rounded down) until you play a word.</div>
           </div>
         </div>
       </div>
@@ -130,6 +131,10 @@
           <div class="ico">3</div>
           <div><strong>Dictionary:</strong> words are validated via a local offline dictionary bundled with the game (<code>data/words.json</code>) and cached by the Service Worker. Submissions require membership in this dictionary.</div>
         </div>
+        <div class="step">
+          <div class="ico">4</div>
+          <div><strong>Vowel meter:</strong> the top‑left header shows <strong>“V: NN%”</strong>, the percentage of visible vowels on the board (top letters only). It updates as tiles land and after submissions.</div>
+        </div>
       </div>
     </section>
 
@@ -148,6 +153,28 @@
         <div class="step">
           <div class="ico">✓</div>
           <div>Use <strong>Drop (▼)</strong> tactically to adjust the cadence on your terms.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="howto" aria-label="Deep Dive: How letters are chosen">
+      <h2>Deep Dive: How letters are chosen</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="ico">1</div>
+          <div><strong>Shuffled bag:</strong> The game uses a shuffled “bag” of letters (like Scrabble). When the bag empties, it refills automatically. Letters you remove are returned and re‑shuffled for variety.</div>
+        </div>
+        <div class="step">
+          <div class="ico">2</div>
+          <div><strong>Decided at the moment:</strong> A letter is chosen right when it appears (timer spawn or when you press Drop), not earlier. This avoids pre‑batched streaks.</div>
+        </div>
+        <div class="step">
+          <div class="ico">3</div>
+          <div><strong>Gentle balancing:</strong> If the visible top letters are heavy on vowels (about 35%+), the game prefers to spawn a consonant. If they’re heavy on consonants (about 75% consonants / 25% vowels), it prefers a vowel. It looks at a small slice of the bag for a good match; if none is found quickly, it simply uses the next natural letter.</div>
+        </div>
+        <div class="step">
+          <div class="ico">4</div>
+          <div><strong>Vowel meter:</strong> The top‑left header shows “V: NN%”, the percentage of visible vowels (tops only). It updates as tiles land and after submissions.</div>
         </div>
       </div>
     </section>

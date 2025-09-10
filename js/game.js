@@ -8,7 +8,6 @@
 
 import { checkWord, ensureDictionary } from "./api.js";
 import { buildBag, drawLetter, returnLettersBack } from "./bag.js";
-import { tempoForWordLen } from "./tempo.js";
 import { renderGrid, paintBlink, layoutBoard } from "./grid.js";
 import { showToast, showEndModal, showSettingsModal, showMenuModal, showScoreboardModal } from "./ui.js";
 
@@ -195,6 +194,7 @@ let lastTick = performance.now();
 let rafId = null;
 let gameOver = false;
 let runStartMs = 0;
+let lastSubmitMs = 0;
 
 /* ============================
  * Elements
@@ -442,12 +442,21 @@ function manualDrop(){
 }
 
 function applyTempoFromWordLen(len){
-  // Preserve prior behavior choice but stage changes: apply AFTER current cycle finishes
-  const presetName = (spawnQtyCurrent >= 3) ? "Insane" : "Medium";
-  const { interval, qty } = tempoForWordLen(len, presetName);
-  nextIntervalPending = interval;
-  nextQtyPending = qty;
-  return { interval, qty };
+  // Simplified next-cycle rules relative to baseInterval:
+  // 3 letters => base - 3s (min 1s), 4 letters => no change, 5+ letters => base + 3s
+  let interval = null;
+  if (len === 3){
+    interval = Math.max(1000, (baseInterval - 3000));
+  } else if (len >= 5){
+    interval = (baseInterval + 3000);
+  } else {
+    interval = null; // 4 letters => no change
+  }
+  if (interval != null){
+    nextIntervalPending = interval;
+    nextQtyPending = spawnQtyCurrent; // quantity unchanged
+  }
+  return { interval, qty: spawnQtyCurrent };
 }
 function boardIsCleared(){
   return gridStacks.every(st => st.length === 0);
@@ -495,6 +504,7 @@ function resetGame(){
   if (rafId) cancelAnimationFrame(rafId);
   gameOver = false;
   runStartMs = performance.now();
+  lastSubmitMs = runStartMs;
 
   bag = buildBag(GRID_ROWS, GRID_COLS);
   initGrid();
@@ -546,12 +556,22 @@ function loop(now){
     const ended = performSpawnTick();
     if (ended) return;
 
-    // Apply any pending tempo for the NEW cycle (do not cancel the just-finished cycle)
+    // Apply simplified next-cycle tempo (from last submission), else idle acceleration if 12s without a submission
     if (nextIntervalPending != null && nextQtyPending != null){
       spawnInterval = nextIntervalPending;
       spawnQtyCurrent = nextQtyPending;
       nextIntervalPending = null;
       nextQtyPending = null;
+    } else {
+      const nowMs = performance.now();
+      if ((nowMs - lastSubmitMs) >= 12000) {
+        // speed up to ~50% of base interval; round down to whole seconds (min 1s)
+        const half = Math.max(1000, Math.floor((baseInterval * 0.5) / 1000) * 1000);
+        spawnInterval = half;
+      } else {
+        // default to base interval when not idle-accelerated
+        spawnInterval = baseInterval;
+      }
     }
 
     spawnCountdown = spawnInterval;
@@ -605,8 +625,18 @@ async function trySubmit(){
 
   // Tempo changes take effect next cycle (do not reset current countdown/targets)
   {
-    const { interval, qty } = applyTempoFromWordLen(len);
-    showToast(`Next cycle: ${qty} ${qty===1 ? "tile" : "tiles"} every ${(interval/1000).toFixed(1)}s`);
+    const { interval } = applyTempoFromWordLen(len);
+    if (len === 3){
+      const secs = Math.max(1, Math.floor((baseInterval - 3000) / 1000));
+      showToast(`Next cycle: every ${secs}s (faster)`);
+    } else if (len === 4){
+      showToast(`Next cycle: no change`);
+    } else {
+      const secs = Math.floor((baseInterval + 3000) / 1000);
+      showToast(`Next cycle: every ${secs}s (slower)`);
+    }
+    // Reset idle timer on successful submit
+    lastSubmitMs = performance.now();
   }
 }
 
