@@ -34,7 +34,7 @@ export function renderGrid(gridEl, gridStacks, selectedSet, opts = {}){
     if (stackLen > 1){
       const b = document.createElement("div");
       b.className = "badge";
-      b.textContent = `×${stackLen}`;
+      b.textContent = `${stackLen}`;
       tile.appendChild(b);
     }
 

@@ -129,11 +129,7 @@ export function showSettingsModal({ initial, onSave }){
 
   const row = (labelText, inputEl) => {
     const wrap = document.createElement("div");
-    wrap.style.display = "grid";
-    wrap.style.gridTemplateColumns = "1fr auto";
-    wrap.style.gap = "10px";
-    wrap.style.alignItems = "center";
-    wrap.style.margin = "10px 0";
+    wrap.className = "form-row";
     const label = document.createElement("label");
     label.textContent = labelText;
     label.style.fontWeight = "600";
