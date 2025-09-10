@@ -10,8 +10,8 @@ Tiles that will receive the next spawn show an on‑tile circular countdown cloc
 - Click “Start Game”, pick a Level and threshold, and play.
 
 Notes:
-- Word validation uses https://dictionaryapi.dev/.
-- If your browser restricts XHR under `file://`, use a local static server.
+- Word validation uses a local offline dictionary at `data/words.json` (cached by the Service Worker).
+- If your browser restricts XHR under `file://` or you want the Service Worker to work, use a local static server.
 
 ## How to play
 
@@ -70,6 +70,10 @@ Settings persist in `localStorage` under `ws.settings`.
 ```
 index.html
 game.html
+guide.html
+sw.js
+data/
+  words.json
 styles/
   base.css
   landing.css
@@ -80,7 +84,7 @@ js/
   grid.js       # Rendering, responsive sizing, on-tile spawn clocks & fill
   bag.js        # Scrabble-like letter bag + shuffle/returns
   tempo.js      # Level mapping & tempo rules (word-length-based adjustments)
-  api.js        # Dictionary API wrapper with cache
+  api.js        # Local dictionary loader (loads data/words.json; strict membership check)
   ui.js         # Toasts, modals (settings/menu/scoreboard/end), helpers
 ```
 
@@ -95,7 +99,13 @@ js/
 
 - Static HTML/CSS/JS modules; no build step required
 - Persists settings and scores via `localStorage`
-- Dictionary validation via https://dictionaryapi.dev/
+- Dictionary validation via local offline dictionary (`data/words.json`). A Service Worker pre-caches all assets for offline play.
+
+## Offline
+
+- A Service Worker (sw.js) pre-caches the app shell and `data/words.json` on first load over HTTP(S).
+- Test locally: run a static server (e.g., `python -m http.server 8000`), load the app once, then switch DevTools to "Offline" and reload.
+- Note: Service Workers are not active under `file://` URLs; use a local server.
 
 ## License
 

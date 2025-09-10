@@ -42,5 +42,12 @@
   <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
 
   <script type="module" src="js/game.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
 </body>
 </html>

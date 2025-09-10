@@ -1,57 +1,60 @@
 /**
- * dictionary API wrapper
- * - Default endpoint: https://api.dictionaryapi.dev/api/v2/entries/en/
+ * Local dictionary loader & checker
+ * - Loads once from data/words.json (JSON array of strings)
  * - Exported: checkWord(word: string) => Promise<boolean>
- * - Caches results in-memory
- * - Fallback: if network/server error, returns DEV_ALLOW_ANY_WORD (default: true for MVP)
+ * - Strict: no network fallback, never accept non-words
  */
 
-const DEFAULT_ENDPOINT = "https://api.dictionaryapi.dev/api/v2/entries/en/";
-const cache = new Map();
+let dictSet = null;
+/** @type {Promise<Set<string>>|null} */
+let loadPromise = null;
 
-/** Read config from global or localStorage (optional future override) */
-function getEndpoint(){
-  if (typeof window !== "undefined" && window.WORD_STACKS_API_BASE){
-    return String(window.WORD_STACKS_API_BASE);
-  }
-  const ls = typeof localStorage !== "undefined" ? localStorage.getItem("wordStacks.apiBase") : null;
-  return (ls || DEFAULT_ENDPOINT);
+function normalizeWord(w) {
+  return (w || "").toLowerCase().trim();
 }
-function getDevAllowAnyWord(){
-  const ls = typeof localStorage !== "undefined" ? localStorage.getItem("wordStacks.devAllowAnyWord") : null;
-  if (ls === null) return true; // MVP default: on
-  return ls === "true";
+
+async function ensureDictionary() {
+  if (dictSet) return dictSet;
+  if (loadPromise) return loadPromise;
+
+  loadPromise = (async () => {
+    // Allow SW to serve from cache; still fine on first load
+    const res = await fetch("data/words.json", { cache: "force-cache" });
+    if (!res.ok) throw new Error("Failed to load dictionary");
+
+    const arr = await res.json();
+    const set = new Set();
+
+    // Normalize to lowercase, keep only alphabetic words length ≥ 3
+    for (let i = 0; i < arr.length; i++) {
+      const raw = arr[i];
+      if (typeof raw !== "string") continue;
+      const lower = normalizeWord(raw);
+      if (lower.length < 3) continue;
+      if (!/^[a-z]+$/.test(lower)) continue; // filter out anything not A–Z
+      set.add(lower);
+    }
+
+    dictSet = set;
+    return dictSet;
+  })();
+
+  return loadPromise;
 }
 
 /**
- * Query the dictionary API
- * Returns: true if found (200 with valid body), false if 404,
- *          DEV fallback boolean if other error statuses or network failures
+ * Check if a word exists in the local dictionary (strict).
+ * If the dictionary cannot be loaded (e.g., first-ever offline visit), returns false.
  */
-export async function checkWord(word){
-  const w = (word || "").toLowerCase().trim();
+export async function checkWord(word) {
+  const w = normalizeWord(word);
   if (w.length < 3) return false;
-  if (cache.has(w)) return cache.get(w);
 
-  const endpoint = getEndpoint();
-  const allowFallback = getDevAllowAnyWord();
-
-  try{
-    const res = await fetch(endpoint + encodeURIComponent(w), { cache: "no-store" });
-    if (res.status === 200){
-      const data = await res.json();
-      const ok = Array.isArray(data) && data.length > 0 && !!(data[0]?.word);
-      cache.set(w, !!ok);
-      return !!ok;
-    }
-    if (res.status === 404){
-      cache.set(w, false);
-      return false;
-    }
-    // unknown server response; dev fallback
-    return allowFallback ? true : false;
-  } catch{
-    // network error / offline; dev fallback
-    return allowFallback ? true : false;
+  try {
+    const set = await ensureDictionary();
+    return set.has(w);
+  } catch {
+    // Strict: never allow words if dictionary unavailable
+    return false;
   }
 }

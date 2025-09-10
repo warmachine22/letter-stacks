@@ -485,7 +485,7 @@ function loop(now){
 }
 
 /* ============================
- * Submit (with API validation)
+ * Submit (with local dictionary validation)
  * ============================
  */
 async function trySubmit(){
