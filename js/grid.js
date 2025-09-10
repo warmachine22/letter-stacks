@@ -11,7 +11,7 @@ function topLetter(stack){
 }
 
 export function renderGrid(gridEl, gridStacks, selectedSet, opts = {}){
-  const { gridSize, blinkTargets = [], onTileClick, threshold } = opts;
+  const { gridSize, blinkTargets = [], onTileClick, threshold, stackStyle } = opts;
   if (!gridEl) return;
 
   if (gridSize) {
@@ -28,27 +28,47 @@ export function renderGrid(gridEl, gridStacks, selectedSet, opts = {}){
     if (selectedSet && selectedSet.has(i)) tile.classList.add("selected");
 
     const L = topLetter(gridStacks[i]);
-    tile.textContent = L ?? "";
+
+    // Clear and rebuild content so we can layer fill/letter
+    tile.textContent = "";
 
     const stackLen = gridStacks[i]?.length || 0;
 
-    // Apply warn/danger classes when a stack threshold is active
-    if (typeof threshold === "number" && Number.isFinite(threshold) && threshold > 0){
-      const warnAt = Math.ceil(threshold * 0.5);
-      const dangerAt = Math.max(1, threshold - 2);
-      if (stackLen >= dangerAt) {
-        tile.classList.add("danger");
-      } else if (stackLen >= warnAt) {
-        tile.classList.add("warn");
+    const useFill = (stackStyle === "fill") && (typeof threshold === "number" && Number.isFinite(threshold) && threshold > 0);
+
+    if (useFill) {
+      const pct = Math.max(0, Math.min(stackLen / threshold, 1));
+      const bar = document.createElement("div");
+      bar.className = "fillBar";
+      bar.style.height = `${Math.round(pct * 100)}%`;
+      if (pct > 0.7) bar.classList.add("red");
+      else if (pct > 0.5) bar.classList.add("orange");
+      // else default green
+      tile.appendChild(bar);
+    } else {
+      // Default warn/danger visuals and badge
+      if (typeof threshold === "number" && Number.isFinite(threshold) && threshold > 0){
+        const warnAt = Math.ceil(threshold * 0.5);
+        const dangerAt = Math.max(1, threshold - 2);
+        if (stackLen >= dangerAt) {
+          tile.classList.add("danger");
+        } else if (stackLen >= warnAt) {
+          tile.classList.add("warn");
+        }
+      }
+
+      if (stackLen > 1){
+        const b = document.createElement("div");
+        b.className = "badge";
+        b.textContent = `${stackLen}`;
+        tile.appendChild(b);
       }
     }
 
-    if (stackLen > 1){
-      const b = document.createElement("div");
-      b.className = "badge";
-      b.textContent = `${stackLen}`;
-      tile.appendChild(b);
-    }
+    const letterEl = document.createElement("span");
+    letterEl.className = "letter";
+    letterEl.textContent = L ?? "";
+    tile.appendChild(letterEl);
 
     tile.addEventListener("click", ()=>{
       if (!L) return;

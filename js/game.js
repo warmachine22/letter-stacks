@@ -20,15 +20,16 @@ const SETTINGS_KEY = "ws.settings";
 function loadSettings(){
   try{
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return { difficulty:"Medium", gridSize:6, threshold:"off" };
+    if (!raw) return { difficulty:"Medium", gridSize:6, threshold:"off", stackStyle:"default" };
     const obj = JSON.parse(raw);
     return {
       difficulty: obj.difficulty ?? "Medium",
       gridSize: Number(obj.gridSize ?? 6),
-      threshold: String(obj.threshold ?? "off")
+      threshold: String(obj.threshold ?? "off"),
+      stackStyle: String(obj.stackStyle ?? "default")
     };
   }catch{
-    return { difficulty:"Medium", gridSize:6, threshold:"off" };
+    return { difficulty:"Medium", gridSize:6, threshold:"off", stackStyle:"default" };
   }
 }
 function saveSettings(s){
@@ -42,6 +43,7 @@ function saveSettings(s){
 let settings = loadSettings();           // { difficulty, gridSize, threshold }
 let GRID_SIZE = settings.gridSize;
 let difficulty = settings.difficulty;
+let stackStyle = settings.stackStyle ?? "default";
 
 let LOSE_ON_STACK_CEILING = settings.threshold !== "off";
 let STACK_CEILING = settings.threshold === "off" ? 7 : parseInt(settings.threshold, 10);
@@ -125,6 +127,7 @@ function repaint(withBlink = true){
   renderGrid(el.grid, gridStacks, selected, {
     gridSize: GRID_SIZE,
     threshold: LOSE_ON_STACK_CEILING ? STACK_CEILING : undefined,
+    stackStyle,
     blinkTargets: withBlink && blinkArmed && nextTargets.length ? nextTargets.map(t=>t.idx) : [],
     onTileClick: (i)=>{
       if (gameOver) return;
@@ -344,7 +347,8 @@ function openSettings(){
       settings = {
         difficulty: s.difficulty,
         gridSize: s.gridSize,
-        threshold: s.threshold
+        threshold: s.threshold,
+        stackStyle: s.stackStyle || "default"
       };
       saveSettings(settings);
 
@@ -353,6 +357,7 @@ function openSettings(){
       GRID_SIZE = settings.gridSize;
       LOSE_ON_STACK_CEILING = settings.threshold !== "off";
       STACK_CEILING = settings.threshold === "off" ? 7 : parseInt(settings.threshold, 10);
+      stackStyle = settings.stackStyle || "default";
 
       resetGame();
       showToast("Settings applied");

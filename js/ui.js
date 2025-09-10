@@ -159,15 +159,64 @@ export function showSettingsModal({ initial, onSave }){
   // Threshold
   const thr = document.createElement("select");
   thr.className = "select";
-  [["off","Off"],["5","5"],["7","7"],["9","9"]].forEach(([v,l])=>{
+  // Off, then 5 through 10
+  [["off","Off"],["5","5"],["6","6"],["7","7"],["8","8"],["9","9"],["10","10"]].forEach(([v,l])=>{
     const o = document.createElement("option"); o.value=v; o.textContent=l;
     if (String(initial?.threshold ?? "off") === v) o.selected = true;
     thr.appendChild(o);
   });
 
-  body.appendChild(row("Difficulty", diff));
+  // Difficulty row with inline help toggle
+  const diffWrap = document.createElement("div");
+  diffWrap.style.display = "flex";
+  diffWrap.style.gap = "8px";
+  diffWrap.style.alignItems = "center";
+
+  const infoBtn = document.createElement("button");
+  infoBtn.type = "button";
+  infoBtn.className = "textBtn";
+  infoBtn.setAttribute("aria-expanded", "false");
+  infoBtn.title = "How difficulty affects spawns and tempo";
+  infoBtn.textContent = "ⓘ";
+  diffWrap.appendChild(diff);
+  diffWrap.appendChild(infoBtn);
+
+  const diffRow = row("Difficulty", diffWrap);
+  body.appendChild(diffRow);
+
+  const diffHelp = document.createElement("div");
+  diffHelp.className = "modal-help hidden";
+  diffHelp.innerHTML = `
+    <strong>Difficulty:</strong> controls spawn rate and quantity.<br/>
+    Easy: 1 letter every 10s • Medium: 1 every 7s • Hard: 2 every 5s • Insane: 3 every 4s<br/>
+    <strong>Tempo:</strong> 3-letter words speed up; 4-letter neutral; 5+ slow down future spawns.
+  `;
+  body.appendChild(diffHelp);
+
+  infoBtn.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    const isHidden = diffHelp.classList.toggle("hidden");
+    infoBtn.setAttribute("aria-expanded", String(!isHidden));
+  });
+
+  // Grid size
   body.appendChild(row("Grid Size", grid));
+
+  // Threshold (lose condition)
   body.appendChild(row("Lose at stack", thr));
+
+  // Stack display style
+  const styleSel = document.createElement("select");
+  styleSel.className = "select";
+  [
+    ["default","Default"],
+    ["fill","Fill method"]
+  ].forEach(([v,l])=>{
+    const o = document.createElement("option"); o.value=v; o.textContent=l; styleSel.appendChild(o);
+  });
+  if (initial?.stackStyle === "fill") styleSel.value = "fill";
+  body.appendChild(row("Stack Display", styleSel));
+
   card.appendChild(body);
 
   const actions = document.createElement("div");
@@ -184,7 +233,8 @@ export function showSettingsModal({ initial, onSave }){
     const settings = {
       difficulty: diff.value,
       gridSize: parseInt(grid.value, 10),
-      threshold: thr.value
+      threshold: thr.value,
+      stackStyle: (document.querySelector(".form-row select.select:last-of-type") ? styleSel.value : "default")
     };
     overlay.remove();
     if (typeof onSave === "function") onSave(settings);
