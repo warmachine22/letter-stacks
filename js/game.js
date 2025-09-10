@@ -86,6 +86,70 @@ let bag = [];
 let gridStacks = [];                     // array<array<string>>
 let selected = new Set();                // Set<number>
 
+// Balanced letter-draw configuration (tunable)
+const VOWEL_RATIO_MAX = 0.35; // if visible vowels ≥ 35%, prefer a consonant
+const VOWEL_RATIO_MIN = 0.25; // if visible vowels ≤ 25%, prefer a vowel (board is consonant-heavy)
+const SCAN_WINDOW     = 64;   // how many items from the bag top to scan for a desired type
+
+function isVowel(ch){
+  const c = (ch || "").toUpperCase();
+  return c === "A" || c === "E" || c === "I" || c === "O" || c === "U";
+}
+
+/**
+ * Count visible top-layer composition only (what players can actually see/play)
+ */
+function countVisibleTop(){
+  let total = 0, vowels = 0;
+  const totalTiles = GRID_ROWS * GRID_COLS;
+  for (let i = 0; i < totalTiles; i++){
+    const top = topLetterAt(i);
+    if (!top) continue;
+    total++;
+    if (isVowel(top)) vowels++;
+  }
+  return { total, vowels };
+}
+
+/**
+ * Draw a letter right at spawn time with a gentle bias based on visible composition.
+ * - Prefers consonant if visible vowels are high; prefers vowel if consonants are high.
+ * - Scans a small window from the top of the bag; falls back to normal draw if none found.
+ */
+function drawLetterBalanced(){
+  if (!bag.length){
+    const refill = buildBag(GRID_ROWS, GRID_COLS);
+    bag.push(...refill);
+  }
+  const { total, vowels } = countVisibleTop();
+  const ratio = total > 0 ? (vowels / total) : 0;
+
+  // Prefer consonant if visible vowels are high
+  if (ratio >= VOWEL_RATIO_MAX){
+    const start = Math.max(0, bag.length - SCAN_WINDOW);
+    for (let i = bag.length - 1; i >= start; i--){
+      const L = bag[i];
+      if (!isVowel(L)){
+        bag.splice(i, 1);
+        return L;
+      }
+    }
+  }
+  // Prefer vowel if visible vowels are low (board is consonant-heavy)
+  else if (ratio <= VOWEL_RATIO_MIN){
+    const start = Math.max(0, bag.length - SCAN_WINDOW);
+    for (let i = bag.length - 1; i >= start; i--){
+      const L = bag[i];
+      if (isVowel(L)){
+        bag.splice(i, 1);
+        return L;
+      }
+    }
+  }
+  // Default: normal last-in draw
+  return bag.pop();
+}
+
 /**
  * Map level (1–20) to base interval (ms) and spawn quantity.
  * Levels:
@@ -307,12 +371,14 @@ function chooseNextSpawns(){
     }
   }
 
-  nextTargets = picks.map(idx => ({ idx, letter: drawLetter(bag, GRID_ROWS, GRID_COLS) }));
+  // Defer letter draw to the actual spawn/drop moment (reduce pre-batch clustering)
+  nextTargets = picks.map(idx => ({ idx }));
 }
 function performSpawnTick(){
   if (!nextTargets.length) chooseNextSpawns();
   for (const t of nextTargets){
-    gridStacks[t.idx].push(t.letter);
+    const L = drawLetterBalanced();
+    gridStacks[t.idx].push(L);
     if (gridStacks[t.idx].length >= STACK_CEILING){
       endGame({ type:"lose", reason:`Stack hit ×${STACK_CEILING}` });
       return true; // ended
@@ -340,7 +406,10 @@ function manualDrop(){
   const t = nextTargets.shift();
   if (!t) return;
 
-  gridStacks[t.idx].push(t.letter);
+  {
+    const L = drawLetterBalanced();
+    gridStacks[t.idx].push(L);
+  }
 
   if (gridStacks[t.idx].length >= STACK_CEILING){
     endGame({ type:"lose", reason:`Stack hit ×${STACK_CEILING}` });
