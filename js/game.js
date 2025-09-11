@@ -38,8 +38,8 @@ function loadSettings(){
       else if (d === "insane") lvl = 19;       // 3×4s
       else lvl = 1;
     }
-    // Clamp within 1–26
-    if (lvl < 1) lvl = 1; if (lvl > 26) lvl = 26;
+    // Clamp within 1–25
+    if (lvl < 1) lvl = 1; if (lvl > 25) lvl = 25;
 
     return {
       level: lvl,
@@ -84,6 +84,7 @@ let STACK_CEILING = parseInt(settings.threshold, 10) || 7;
 let bag = [];
 let gridStacks = [];                     // array<array<string>>
 let selected = new Set();                // Set<number>
+let tallCooldown = new Map();            // Map<idx, remaining cycles> for tallest-pick cooldown
 
 // Balanced letter-draw configuration (tunable)
 const VOWEL_RATIO_MAX = 0.35; // if visible vowels ≥ 35%, prefer a consonant
@@ -177,16 +178,15 @@ function presetForLevel(level){
   else if (level === 20) { qty = 4; secs = 10; }
   else if (level >= 21 && level <= 24) { qty = 4; secs = 29 - level; }      // 21:8, 22:7, 23:6, 24:5
   else if (level === 25) { qty = 5; secs = 6; }
-  else if (level === 26) { qty = 6; secs = 6; }
   // Guardrails
   secs = Math.max(1, Math.min(60, secs));
   return { baseInterval: secs * 1000, spawnQty: qty };
 }
 
-let { baseInterval, spawnQty } = presetForLevel(settings.level || 1);
-let spawnInterval = baseInterval;
+const preset0 = presetForLevel(settings.level || 1);
+let spawnInterval = preset0.baseInterval;
 let spawnCountdown = spawnInterval;
-let spawnQtyCurrent = spawnQty;
+let spawnQtyCurrent = preset0.spawnQty;
 
 
 let nextTargets = [];                    // [{ idx:number, letter:string }]
@@ -348,6 +348,15 @@ function chooseNextSpawns(){
   const qty = spawnQtyCurrent;
   const total = GRID_ROWS * GRID_COLS;
 
+  // Decrement tall-pick cooldowns at the start of each cycle
+  if (tallCooldown.size){
+    for (const [k, v] of tallCooldown){
+      const nv = (v|0) - 1;
+      if (nv <= 0) tallCooldown.delete(k);
+      else tallCooldown.set(k, nv);
+    }
+  }
+
   // Fisher–Yates shuffle helper
   const shuffle = (arr) => {
     for (let i = arr.length - 1; i > 0; i--){
@@ -357,61 +366,6 @@ function chooseNextSpawns(){
     return arr;
   };
 
-  // Extreme Level 26:
-  // - Pick exactly 6 distinct indices: 2 from tallest (ties random; fall through to next-tallest if needed) + 4 random anywhere.
-  // - No empty-tile priority; uniqueness guaranteed via Set.
-  if ((settings.level || 1) === 26){
-    const heights = Array.from({ length: total }, (_, i) => ({ i, h: gridStacks[i].length }));
-    const byHeightDesc = [...heights].sort((a, b) => b.h - a.h);
-
-    // Local shuffle
-    const shuffle = (arr) => {
-      for (let i = arr.length - 1; i > 0; i--){
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    };
-
-    const chosen = new Set();
-    const picks = [];
-
-    // 1) Up to 2 from tallest heights (ties random; then next-tallest if needed)
-    let i = 0;
-    while (picks.length < Math.min(2, qty) && i < byHeightDesc.length){
-      const hVal = byHeightDesc[i].h;
-      const group = byHeightDesc
-        .filter(x => x.h === hVal && !chosen.has(x.i))
-        .map(x => x.i);
-      shuffle(group);
-      while (picks.length < Math.min(2, qty) && group.length){
-        const idx = group.pop();
-        if (!chosen.has(idx)){ chosen.add(idx); picks.push(idx); }
-      }
-      while (i < byHeightDesc.length && byHeightDesc[i].h === hVal) i++;
-    }
-
-    // 2) Remaining picks random anywhere (excluding already chosen)
-    const remaining = [];
-    for (let j = 0; j < total; j++){
-      if (!chosen.has(j)) remaining.push(j);
-    }
-    shuffle(remaining);
-    while (picks.length < qty && remaining.length){
-      const idx = remaining.pop();
-      if (!chosen.has(idx)){ chosen.add(idx); picks.push(idx); }
-    }
-
-    // 3) Final guard to ensure qty distinct indices
-    if (picks.length < qty){
-      for (let j = 0; j < total && picks.length < qty; j++){
-        if (!chosen.has(j)){ chosen.add(j); picks.push(j); }
-      }
-    }
-
-    nextTargets = picks.map(idx => ({ idx }));
-    return;
-  }
 
   // Default behavior for other levels:
   if (qty >= 2){
@@ -419,20 +373,37 @@ function chooseNextSpawns(){
     const chosen = new Set();
     const picks = [];
 
-    // 1) One targeted from tallest
+    // 1) One targeted from tallest (respect 3-cycle cooldown)
     const heights = Array.from({ length: total }, (_, i) => ({ i, h: gridStacks[i].length }));
     const byHeightDesc = [...heights].sort((a,b) => b.h - a.h);
     const shuffleLocal = (arr) => { for (let k = arr.length - 1; k > 0; k--){ const j = Math.floor(Math.random() * (k + 1)); [arr[k], arr[j]] = [arr[j], arr[k]]; } return arr; };
     let t = 0;
+    // First pass: skip indices on cooldown
     while (picks.length < 1 && t < byHeightDesc.length){
       const hVal = byHeightDesc[t].h;
-      const group = byHeightDesc.filter(x => x.h === hVal && !chosen.has(x.i)).map(x => x.i);
+      const group = byHeightDesc
+        .filter(x => x.h === hVal && !chosen.has(x.i) && !tallCooldown.has(x.i))
+        .map(x => x.i);
       shuffleLocal(group);
       while (picks.length < 1 && group.length){
         const idx = group.pop();
-        if (!chosen.has(idx)){ chosen.add(idx); picks.push(idx); }
+        if (!chosen.has(idx)){ chosen.add(idx); picks.push(idx); tallCooldown.set(idx, 3); }
       }
       while (t < byHeightDesc.length && byHeightDesc[t].h === hVal) t++;
+    }
+    // Fallback: allow choosing from tallest even if on cooldown to guarantee a pick
+    if (picks.length < 1){
+      t = 0;
+      while (picks.length < 1 && t < byHeightDesc.length){
+        const hVal = byHeightDesc[t].h;
+        const group = byHeightDesc.filter(x => x.h === hVal && !chosen.has(x.i)).map(x => x.i);
+        shuffleLocal(group);
+        while (picks.length < 1 && group.length){
+          const idx = group.pop();
+          if (!chosen.has(idx)){ chosen.add(idx); picks.push(idx); /* already on cooldown */ }
+        }
+        while (t < byHeightDesc.length && byHeightDesc[t].h === hVal) t++;
+      }
     }
 
     // 2) Remaining picks random anywhere
@@ -588,6 +559,7 @@ function resetGame(){
   bag = buildBag(GRID_ROWS, GRID_COLS);
   initGrid();
   selected.clear(); updateWordBar(); repaint(false);
+  tallCooldown.clear();
 
   const p = presetForLevel(settings.level || 1);
   spawnInterval = p.baseInterval;
@@ -635,9 +607,10 @@ function loop(now){
     const ended = performSpawnTick();
     if (ended) return;
 
-    // Fixed tempo per level: always use base interval and spawn quantity
-    spawnInterval = baseInterval;
-    spawnQtyCurrent = spawnQty;
+    // Fixed tempo per level: recompute from current level
+    const pLoop = presetForLevel(settings.level || 1);
+    spawnInterval = pLoop.baseInterval;
+    spawnQtyCurrent = pLoop.spawnQty;
 
     spawnCountdown = spawnInterval;
     chooseNextSpawns();
@@ -746,6 +719,101 @@ window.addEventListener("resize", layout);
 window.addEventListener("orientationchange", ()=> setTimeout(layout, 120));
 
 /* ============================
+ * Test harness (programmatic spawn-target audit)
+ * ============================
+ */
+function runSpawnTest({ level = 25, cycles = 200 } = {}){
+  // Pause the main loop
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+  // Snapshot important state to restore later
+  const prev = {
+    level: settings.level,
+    ceiling: STACK_CEILING
+  };
+
+  // Configure hardest level and a very high ceiling to avoid early loss
+  settings.level = level;
+  saveSettings(settings);
+  STACK_CEILING = 999;
+
+  // Reset minimal board state
+  bag = buildBag(GRID_ROWS, GRID_COLS);
+  initGrid();
+  selected.clear();
+  nextTargets = [];
+  blinkArmed = false;
+  tallCooldown.clear();
+
+  const p0 = presetForLevel(settings.level || 1);
+  spawnQtyCurrent = p0.spawnQty;
+  spawnInterval = p0.baseInterval;
+
+  const results = {
+    level,
+    cycles,
+    tallestFallbacks: 0,          // times tallest pick selected while on cooldown (fallback branch)
+    randomHitsOnCooldown: 0,      // times random picks hit indices on cooldown
+    tallestGaps: {}               // per-index array of cycle gaps between tallest hits
+  };
+  const lastTallSeen = {};
+
+  for (let c = 0; c < cycles; c++){
+    // Schedule targets for this cycle
+    chooseNextSpawns();
+    const picks = nextTargets.map(t => t.idx);
+
+    const tallestIdx = picks.length ? picks[0] : undefined;
+
+    // If tallestIdx is still on cooldown now, it means the fallback branch selected it
+    if (typeof tallestIdx === "number" && tallCooldown.has(tallestIdx)){
+      results.tallestFallbacks++;
+    }
+
+    // Count random hits on cooldown (picks after the tallest slot)
+    for (let k = 1; k < picks.length; k++){
+      if (tallCooldown.has(picks[k])) results.randomHitsOnCooldown++;
+    }
+
+    // Track gaps between tallest hits per index
+    if (typeof tallestIdx === "number"){
+      const prevSeen = lastTallSeen[tallestIdx];
+      if (typeof prevSeen === "number"){
+        (results.tallestGaps[tallestIdx] ||= []).push(c - prevSeen);
+      }
+      lastTallSeen[tallestIdx] = c;
+    }
+
+    // Apply the spawn
+    const ended = performSpawnTick();
+    if (ended) break;
+
+    // As in the main loop: reset per-cycle quantities from the current level
+    const pp = presetForLevel(settings.level || 1);
+    spawnInterval = pp.baseInterval;
+    spawnQtyCurrent = pp.spawnQty;
+  }
+
+  // Compute quick summary
+  const gapsAll = Object.values(results.tallestGaps).flat();
+  const avgGap = gapsAll.length ? (gapsAll.reduce((a,b)=> a + b, 0) / gapsAll.length) : null;
+  results.summary = {
+    tallestFallbacks: results.tallestFallbacks,
+    randomHitsOnCooldown: results.randomHitsOnCooldown,
+    avgTallestGap: avgGap
+  };
+
+  // Restore previous settings and restart game/loop
+  settings.level = prev.level;
+  saveSettings(settings);
+  STACK_CEILING = prev.ceiling;
+  resetGame();
+
+  return results;
+}
+window.runSpawnTest = runSpawnTest;
+
+/* ============================
  * Boot
  * ============================
  */
@@ -767,6 +835,20 @@ async function boot(){
   // If scoreboard=1 is present, open Scoreboard modal (works from Home deep-link)
   if (params.get("scoreboard") === "1"){
     setTimeout(()=> showScoreboardModal({ getScores, onHome: ()=> { window.location.href = "index.html"; } }), 50);
+  }
+
+  // Optional: run automated spawn test (open game.html?autotest=1)
+  if (params.get("autotest") === "1"){
+    setTimeout(() => {
+      try{
+        const res = window.runSpawnTest ? window.runSpawnTest({ level: 25, cycles: 200 }) : null;
+        console.log("SpawnTest Result:", res);
+        showToast("Auto test complete. See console.");
+      }catch(e){
+        console.error("SpawnTest failed", e);
+        showToast("Auto test failed");
+      }
+    }, 200);
   }
 }
 boot();

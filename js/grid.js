@@ -43,6 +43,10 @@ export function renderGrid(gridEl, gridStacks, selectedSet, opts = {}){
       bar.className = "fillBar";
       bar.style.height = `${Math.round(pct * 100)}%`;
       tile.appendChild(bar);
+      // Attention pulse for tiles at or above 50% of the threshold
+      if (pct >= 0.50) {
+        tile.classList.add("dangerPulse");
+      }
     }
 
     // Spawn clock overlay if this tile is a scheduled target

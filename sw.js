@@ -5,7 +5,7 @@
  * - Works on GitHub Pages and local static servers
  */
 
-const CACHE_NAME = "letter-stacks-v2";
+const CACHE_NAME = "letter-stacks-v3";
 
 // Assets to precache (relative to repo root)
 const PRECACHE_URLS = [
@@ -24,7 +24,6 @@ const PRECACHE_URLS = [
   "js/game.js",
   "js/grid.js",
   "js/bag.js",
-  "js/tempo.js",
   "js/ui.js",
   "js/api.js",
 

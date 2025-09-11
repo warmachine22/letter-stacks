@@ -50,9 +50,7 @@ export function showEndModal({ result, reason, onPlayAgain, onHome, score, elaps
 
   const h2 = document.createElement("h2");
   const isSurvivalMax = (mode === "survival" && (result === "lose" || result === "time") && (level === 25));
-  const isSurvivalExtreme = (mode === "survival" && (result === "lose" || result === "time") && (level === 26));
-  if (isSurvivalExtreme) h2.textContent = "🛡️ You survived Extreme Level";
-  else if (isSurvivalMax) h2.textContent = "🛡️ You survived Max Level";
+  if (isSurvivalMax) h2.textContent = "🛡️ You survived Max Level";
   else if (result === "win") h2.textContent = "🎉 You cleared the board!";
   else h2.textContent = "💀 Game Over";
   h2.style.fontSize = "clamp(22px, 5.2vw, 28px)";
@@ -62,11 +60,10 @@ export function showEndModal({ result, reason, onPlayAgain, onHome, score, elaps
   const body = document.createElement("div");
   body.className = "modal-body";
   const p1 = document.createElement("p");
-  const isSurvival = isSurvivalMax || isSurvivalExtreme;
+  const isSurvival = isSurvivalMax;
   if (isSurvival) {
     const t = typeof elapsedMs !== "undefined" ? fmtTime(elapsedMs) : "";
-    const label = isSurvivalExtreme ? "Extreme Level" : "Max Level";
-    p1.textContent = `You survived ${label} for ${t}${typeof threshold !== "undefined" ? ` with stack limit ${threshold}.` : "."}`;
+    p1.textContent = `You survived Max Level for ${t}${typeof threshold !== "undefined" ? ` with stack limit ${threshold}.` : "."}`;
   } else {
     p1.textContent = reason || (result === "win" ? "Excellent!" : "Try again.");
   }
@@ -151,6 +148,10 @@ export function showSettingsModal({ initial, onSave }){
   };
 
   // Level grid (5×4) selector replacing dropdown
+  // Helpers for color-coding levels
+  const isSurvivalLevel = (lvl) => (lvl|0) >= 23;
+  const getLevelBg = (lvl) => isSurvivalLevel(lvl) ? "rgba(220, 53, 69, 0.18)" : "rgba(62, 209, 161, 0.18)";
+
   const selLevel = parseInt(initial?.level, 10) || 1;
   let selectedLevel = selLevel;
 
@@ -164,7 +165,6 @@ export function showSettingsModal({ initial, onSave }){
     else if (lvl === 20) { qty = 4; secs = 10; }
     else if (lvl >= 21 && lvl <= 24) { qty = 4; secs = 29 - lvl; } // 21:8, 22:7, 23:6, 24:5
     else if (lvl === 25) { qty = 5; secs = 6; }
-    else if (lvl === 26) { qty = 6; secs = 6; } // Extreme
     return { qty, secs };
   };
 
@@ -191,8 +191,39 @@ export function showSettingsModal({ initial, onSave }){
   ruleLine.style.fontSize = "14px";
   body.appendChild(ruleLine);
 
+  // Legend: win vs survival
+  const legend = document.createElement("div");
+  legend.setAttribute("aria-label", "Level type legend");
+  legend.style.display = "flex";
+  legend.style.gap = "10px";
+  legend.style.alignItems = "center";
+  legend.style.margin = "0 0 8px 0";
+  const makeSwatch = (bg, label) => {
+    const wrap = document.createElement("div");
+    wrap.style.display = "inline-flex";
+    wrap.style.alignItems = "center";
+    wrap.style.gap = "6px";
+    const box = document.createElement("span");
+    box.style.display = "inline-block";
+    box.style.width = "14px";
+    box.style.height = "14px";
+    box.style.borderRadius = "4px";
+    box.style.border = "1px solid #222733";
+    box.style.background = bg;
+    const text = document.createElement("span");
+    text.style.fontSize = "13px";
+    text.style.color = "var(--muted)";
+    text.textContent = label;
+    wrap.appendChild(box);
+    wrap.appendChild(text);
+    return wrap;
+  };
+  legend.appendChild(makeSwatch(getLevelBg(1), "Play to win"));
+  legend.appendChild(makeSwatch(getLevelBg(25), "Play to survive"));
+  body.appendChild(legend);
+
   const setSelected = (lvl) => {
-    selectedLevel = Math.max(1, Math.min(26, lvl|0));
+    selectedLevel = Math.max(1, Math.min(25, lvl|0));
     // Update highlight states
     levelGrid.querySelectorAll("button[data-lvl]").forEach(btn => {
       const on = parseInt(btn.dataset.lvl, 10) === selectedLevel;
@@ -202,7 +233,8 @@ export function showSettingsModal({ initial, onSave }){
         btn.style.color = "#0b0d12";
         btn.style.borderColor = "#3ed1a1";
       } else {
-        btn.style.background = "var(--panel)";
+        const lvlVal = parseInt(btn.dataset.lvl, 10) || 1;
+        btn.style.background = getLevelBg(lvlVal);
         btn.style.color = "var(--text)";
         btn.style.borderColor = "#222733";
       }
@@ -212,8 +244,8 @@ export function showSettingsModal({ initial, onSave }){
     ruleLine.textContent = `Level ${selectedLevel}: ${qtyTxt} every ${secs} sec`;
   };
 
-  // Render buttons 1..26
-  for (let lvl = 1; lvl <= 26; lvl++) {
+  // Render buttons 1..25
+  for (let lvl = 1; lvl <= 25; lvl++) {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = String(lvl);
@@ -226,7 +258,7 @@ export function showSettingsModal({ initial, onSave }){
     b.style.fontWeight = "800";
     b.style.fontSize = "clamp(14px, 3.4vw, 16px)";
     b.style.cursor = "pointer";
-    b.style.background = "var(--panel)";
+    b.style.background = getLevelBg(lvl);
     b.style.color = "var(--text)";
     b.addEventListener("click", () => setSelected(lvl));
     b.addEventListener("keydown", (ev) => {
@@ -234,7 +266,7 @@ export function showSettingsModal({ initial, onSave }){
       if (!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End"].includes(key)) return;
       ev.preventDefault();
       const idx = selectedLevel - 1;
-      const TOTAL = 26;
+      const TOTAL = 25;
       const cols = 5;
       let ni = idx;
       if (key === "ArrowLeft") ni = (idx + TOTAL - 1) % TOTAL;
@@ -402,7 +434,7 @@ export function showScoreboardModal({ getScores, onHome } = {}){
   sel.className = "select";
   const optAll = document.createElement("option"); optAll.value = ""; optAll.textContent = "All Levels";
   sel.appendChild(optAll);
-  for (let i=1;i<=26;i++){
+  for (let i=1;i<=25;i++){
     const o = document.createElement("option");
     o.value = String(i);
     o.textContent = `Level ${i}`;
@@ -454,8 +486,6 @@ export function showScoreboardModal({ getScores, onHome } = {}){
       if (s.mode === "survival") {
         if (s.level === 25) {
           html = `<span style="color: var(--danger); font-weight: 800;">Survived</span> Max Level for ${timeTxt}`;
-        } else if (s.level === 26) {
-          html = `<span style="color: var(--danger); font-weight: 800;">Survived</span> Extreme Level for ${timeTxt}`;
         } else {
           html = `<span style="color: var(--danger); font-weight: 800;">Survived</span> Level ${s.level} for ${timeTxt}`;
         }
@@ -476,9 +506,7 @@ export function showScoreboardModal({ getScores, onHome } = {}){
         const text = (s.mode === "survival")
           ? (s.level === 25
               ? `I survived Letter Stacks Max Level 25 for ${timeTxt}${stacksTxt}!`
-              : (s.level === 26
-                  ? `I survived Letter Stacks Extreme Level for ${timeTxt}${stacksTxt}!`
-                  : `I survived Letter Stacks Level ${s.level} for ${timeTxt}${stacksTxt}!`))
+              : `I survived Letter Stacks Level ${s.level} for ${timeTxt}${stacksTxt}!`)
           : `I completed Letter Stacks Level ${s.level} in ${timeTxt}${stacksTxt}!`;
         try{
           if (navigator.share){
