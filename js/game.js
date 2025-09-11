@@ -188,9 +188,6 @@ let spawnInterval = baseInterval;
 let spawnCountdown = spawnInterval;
 let spawnQtyCurrent = spawnQty;
 
-// Stage tempo changes to apply on the next spawn cycle (not mid-cycle)
-let nextIntervalPending = null;
-let nextQtyPending = null;
 
 let nextTargets = [];                    // [{ idx:number, letter:string }]
 let blinkArmed = false;
@@ -199,7 +196,6 @@ let lastTick = performance.now();
 let rafId = null;
 let gameOver = false;
 let runStartMs = 0;
-let lastSubmitMs = 0;
 
 /* ============================
  * Elements
@@ -542,25 +538,6 @@ function manualDrop(){
   updateTimersUI();
 }
 
-function applyTempoFromWordLen(len){
-  // Extreme Level 26: ignore tempo rules (fixed interval/qty)
-  if ((settings.level || 1) === 26){
-    return { interval: null, qty: spawnQtyCurrent };
-  }
-  // Simplified next-cycle rules relative to baseInterval:
-  // 3 letters => base - 3s (min 1s), 4+ letters => no change
-  let interval = null;
-  if (len === 3){
-    interval = Math.max(1000, (baseInterval - 3000));
-  } else {
-    interval = null; // 4+ letters => no change
-  }
-  if (interval != null){
-    nextIntervalPending = interval;
-    nextQtyPending = spawnQtyCurrent; // quantity unchanged
-  }
-  return { interval, qty: spawnQtyCurrent };
-}
 function boardIsCleared(){
   return gridStacks.every(st => st.length === 0);
 }
@@ -607,7 +584,6 @@ function resetGame(){
   if (rafId) cancelAnimationFrame(rafId);
   gameOver = false;
   runStartMs = performance.now();
-  lastSubmitMs = runStartMs;
 
   bag = buildBag(GRID_ROWS, GRID_COLS);
   initGrid();
@@ -659,29 +635,9 @@ function loop(now){
     const ended = performSpawnTick();
     if (ended) return;
 
-    // Apply simplified next-cycle tempo (from last submission), else idle acceleration if 12s without a submission
-    if ((settings.level || 1) === 26){
-      // Extreme Level: fixed tempo and quantity
-      spawnInterval = baseInterval;
-      spawnQtyCurrent = spawnQty;
-      nextIntervalPending = null;
-      nextQtyPending = null;
-    } else if (nextIntervalPending != null && nextQtyPending != null){
-      spawnInterval = nextIntervalPending;
-      spawnQtyCurrent = nextQtyPending;
-      nextIntervalPending = null;
-      nextQtyPending = null;
-    } else {
-      const nowMs = performance.now();
-      if ((nowMs - lastSubmitMs) >= 12000) {
-        // speed up to ~50% of base interval; round down to whole seconds (min 1s)
-        const half = Math.max(1000, Math.floor((baseInterval * 0.5) / 1000) * 1000);
-        spawnInterval = half;
-      } else {
-        // default to base interval when not idle-accelerated
-        spawnInterval = baseInterval;
-      }
-    }
+    // Fixed tempo per level: always use base interval and spawn quantity
+    spawnInterval = baseInterval;
+    spawnQtyCurrent = spawnQty;
 
     spawnCountdown = spawnInterval;
     chooseNextSpawns();
@@ -732,21 +688,6 @@ async function trySubmit(){
     return;
   }
 
-  // Tempo changes take effect next cycle (do not reset current countdown/targets)
-  {
-    const { interval } = applyTempoFromWordLen(len);
-    if ((settings.level || 1) === 26){
-      // Extreme Level: no tempo changes apply
-      showToast("Extreme: tempo fixed");
-    } else if (len === 3){
-      const secs = Math.max(1, Math.floor((baseInterval - 3000) / 1000));
-      showToast(`Next cycle: every ${secs}s (faster)`);
-    } else {
-      showToast(`Next cycle: no change`);
-    }
-    // Reset idle timer on successful submit
-    lastSubmitMs = performance.now();
-  }
 }
 
 /* ============================

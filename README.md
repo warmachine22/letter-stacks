@@ -40,16 +40,11 @@ Targeting:
 - Levels 7–25: when 2+ tiles drop, 1 targets the tallest stack (random among ties); the rest are random anywhere.
 - Level 26 (Extreme): of the 6 targets each cycle, 2 go to the tallest stack(s); the remaining 4 are random anywhere.
 
-After each valid submission, the tempo adapts based on word length (simplified rules):
-
-- 3 letters: next drop is faster by 3 seconds from the level’s base timing (then it returns to normal)
-- 4+ letters: no change (stays at the level’s base timing)
-
-Idle acceleration:
-- If 12 seconds pass without playing a word, drops run at about 50% of the base timing (rounded down to whole seconds) until you play a word.
+Tempo behavior:
+- Tempo is fixed per level. Submitting words does not change the timer, and the game does not accelerate when idle.
 
 Extreme level (26):
-- Fixed tempo: always 6 tiles every 6s (ignores adaptive tempo and idle acceleration).
+- Fixed tempo: 6 tiles every 6s.
 - Targeting mechanic: of the 6 targets each cycle, 2 go to the tallest stack(s) on the board (random among ties); the remaining 4 are random anywhere.
 
 ## Letter selection and balance
@@ -104,10 +99,10 @@ styles/
   game.css
 js/
   main.js       # Landing interactions
-  game.js       # State, timers, level mapping, next-targets, submissions
+  game.js       # State, timers, level mapping, next-targets, submissions (fixed tempo per level)
   grid.js       # Rendering, responsive sizing, on-tile spawn clocks & fill
   bag.js        # Scrabble-like letter bag + shuffle/returns
-  tempo.js      # Level mapping & tempo rules (word-length-based adjustments)
+  tempo.js      # legacy (unused)
   api.js        # Local dictionary loader (loads data/words.json; strict membership check)
   ui.js         # Toasts, modals (settings/menu/scoreboard/end), helpers
 ```
